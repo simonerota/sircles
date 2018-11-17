@@ -149,6 +149,18 @@ class Circle extends React.Component {
     let tab = null
 
     if (activeItem === 'members') {
+
+      // Sorint: custom core member ids. A custom core member fills a role named 'Core Members'
+      let sorintCoreMemberIds = []
+      for (let i = 0; i < role.roles.length; i++) {
+        const coreRole = role.roles[i]
+        if (coreRole.name === 'Core Members') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintCoreMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+      }
+
       let coreMembersData = []
       for (let i = 0; i < role.circleMembers.length; i++) {
         const circleMember = role.circleMembers[i]
@@ -161,9 +173,12 @@ class Circle extends React.Component {
 
         const reason = reasons.join(', ')
 
+        const isCustomCore = (sorintCoreMemberIds.indexOf(circleMember.member.uid) >= 0);
+
         coreMembersData.push({
           member: circleMember.member,
-          reason: reason
+          reason: reason,
+          customCore: isCustomCore
         })
       }
 
@@ -189,7 +204,7 @@ class Circle extends React.Component {
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
                     <Popup content={d.member.fullName} trigger={
                       <span>
-                        {d.member.userName}
+                        {d.member.userName}{d.customCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                       </span>
                     } />
                     </Link>
@@ -215,7 +230,7 @@ class Circle extends React.Component {
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
                       <Popup content={d.member.fullName} trigger={
                         <span>
-                          {d.member.userName}
+                          {d.member.userName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                         </span>
                       } />
                     </Link>
@@ -231,6 +246,18 @@ class Circle extends React.Component {
     if (activeItem === 'roles') {
       let coreRoles = []
       let roles = []
+
+      // Sorint: custom core member ids. A custom core member fills a role named 'Core Members'
+      let sorintCoreMemberIds = []
+      for (let i = 0; i < role.roles.length; i++) {
+        const coreRole = role.roles[i]
+        if (coreRole.name === 'Core Members') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintCoreMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+      }
+
       for (let i = 0; i < role.roles.length; i++) {
         const r = role.roles[i]
         const roleType = r.roleType
@@ -265,12 +292,13 @@ class Circle extends React.Component {
         if (roleMember) {
           let member = r.roleMembers[0].member
           const memberLink = Util.memberUrl(member.uid, timeLine)
+          const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0);
           filler =
             <Link to={memberLink}>
               <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
               <Popup content={member.fullName} trigger={
                 <span>
-                  {member.userName}
+                  {member.userName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                 </span>
               } />
             </Link>
@@ -342,14 +370,16 @@ class Circle extends React.Component {
             if (focus) {
               focusString = ` (${focus})`
             }
+            
             const memberLink = Util.memberUrl(member.uid, timeLine)
+            const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0);
             extras.push(
               <List.Item key={member.uid}>
                 <Link to={memberLink}>
                   <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
                   <Popup content={member.fullName} trigger={
                     <span>
-                      {member.userName}
+                      {member.userName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                     </span>
                   } />
                 </Link>
@@ -413,12 +443,14 @@ class Circle extends React.Component {
             let leadlinkMember = leadlink.roleMembers[0].member
 
             const memberLink = Util.memberUrl(leadlinkMember.uid, timeLine)
+            const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0);
+
             fillers.push(
               <List>
                 <List.Item key={leadlinkMember.uid}>
                   <Link to={memberLink}>
                     <Avatar uid={leadlinkMember.uid} size={30} inline spaced shape='rounded' />
-                   {leadlinkMember.userName}
+                   {leadlinkMember.userName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                  </Link>
                   <span> (Sircle Leader)</span>
                 </List.Item>
@@ -434,7 +466,8 @@ class Circle extends React.Component {
         let cardColor = 'teal'
         if (r.roleType === 'circle') cardColor = 'blue'
 
-        rolesRows.push(
+        if (r.name !== 'Core Members' ||  viewerPermissions.assignChildRoleMembers) { // Sorint: hide 'Core Members' Role
+          rolesRows.push(
           <Card key={r.uid} color={cardColor}>
             <Card.Content style={{'flexGrow': 0}}>
               {r.roleType === 'normal' && canEdit && viewerPermissions.assignChildRoleMembers &&
@@ -453,7 +486,7 @@ class Circle extends React.Component {
             }
               <Card.Header>
                 <Link to={roleLink}>
-                  {r.name}
+                  {r.name}{r.name === 'Core Members' && <Icon inverted color='orange' name='selected radio'></Icon>}
                 </Link>
                 {r.roleType === 'circle' && <Label className='labelright' color='blue' horizontal basic size='tiny'>Circle</Label> }
               </Card.Header>
@@ -468,16 +501,16 @@ class Circle extends React.Component {
       }
 
       tab =
-        <div>
-          <Header as='h3' block>Core Roles</Header>
-          <Card.Group>
-            {coreRolesRows}
-          </Card.Group>
-          <Header as='h3' block>Roles</Header>
-          <Card.Group>
-            {rolesRows}
-          </Card.Group>
-        </div>
+      <div>
+        <Header as='h3' block>Core Roles</Header>
+        <Card.Group>
+          {coreRolesRows}
+        </Card.Group>
+        <Header as='h3' block>Roles</Header>
+        <Card.Group>
+          {rolesRows}
+        </Card.Group>
+      </div>
     }
 
     if (activeItem === 'tensions') {
