@@ -348,8 +348,7 @@ class Circle extends React.Component {
                 {focusString}
               </List.Item>)
           }
-          fillers.push(<List>{extras}</List>)
-          if (fillers.length === 0) {
+          if (extras.length === 0) {
             fillers.push(<div key='none'>no members assigned to role</div>)
           } else {
             fillers.push(<List>{extras}</List>)
