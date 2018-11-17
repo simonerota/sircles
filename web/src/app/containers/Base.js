@@ -122,10 +122,11 @@ class Base extends React.Component {
 
     return (
       <div>
-        <Menu inverted>
+        <Menu inverted attached>
           <Menu.Item as={Link} to='/'>
             <Image size='tiny' src={sirclesLogo} />
           </Menu.Item>
+      
           {viewer && (
             <Menu.Item as={Form} onSubmit={this.doSearch}>
               <Input icon='search' placeholder='Search...' value={searchString} onChange={this.handleSearchChange} />
