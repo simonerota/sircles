@@ -182,7 +182,11 @@ class Circle extends React.Component {
                   <Avatar uid={d.member.uid} size={50} floated='right' inline spaced shape='rounded' />
                   <Card.Header>
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
-                      {d.member.userName}
+                    <Popup content={d.member.fullName} trigger={
+                      <span>
+                        {d.member.userName}
+                      </span>
+                    } />
                     </Link>
                   </Card.Header>
                 </Card.Content>
@@ -204,7 +208,11 @@ class Circle extends React.Component {
                   <Avatar uid={d.member.uid} size={50} floated='right' inline spaced shape='rounded' />
                   <Card.Header>
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
-                      {d.member.userName}
+                      <Popup content={d.member.fullName} trigger={
+                        <span>
+                          {d.member.userName}
+                        </span>
+                      } />
                     </Link>
                   </Card.Header>
                 </Card.Content>
@@ -252,7 +260,11 @@ class Circle extends React.Component {
           filler =
             <Link to={memberLink}>
               <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
-              {member.userName}
+              <Popup content={member.fullName} trigger={
+                <span>
+                  {member.userName}
+                </span>
+              } />
             </Link>
           if (moment.utc(roleMember.electionExpiration).isValid()) {
             expireInfo = 'expires on ' + moment.utc(roleMember.electionExpiration).format('L')
@@ -327,7 +339,11 @@ class Circle extends React.Component {
               <List.Item key={member.uid}>
                 <Link to={memberLink}>
                   <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
-                  {member.userName}
+                  <Popup content={member.fullName} trigger={
+                    <span>
+                      {member.userName}
+                    </span>
+                  } />
                 </Link>
                 {focusString}
               </List.Item>)
@@ -335,6 +351,8 @@ class Circle extends React.Component {
           fillers.push(<List>{extras}</List>)
           if (fillers.length === 0) {
             fillers.push(<div key='none'>no members assigned to role</div>)
+          } else {
+            fillers.push(<List>{extras}</List>)
           }
           if (r.roleMembers.length > 3) { // Other members accordion
             extras = []
@@ -351,7 +369,11 @@ class Circle extends React.Component {
                 <List.Item key={extramember.uid}>
                   <Link to={extramemberLink}>
                     <Avatar uid={extramember.uid} size={30} inline spaced shape='rounded' />
-                    {extramember.userName}
+                    <Popup content={extramember.fullName} trigger={
+                      <span>
+                        {extramember.userName}
+                      </span>
+                    } />
                   </Link>
                   {focusString}
                 </List.Item>)
@@ -389,7 +411,7 @@ class Circle extends React.Component {
                 <List.Item key={leadlinkMember.uid}>
                   <Link to={memberLink}>
                     <Avatar uid={leadlinkMember.uid} size={30} inline spaced shape='rounded' />
-                    {leadlinkMember.userName}
+                    {leadlinkMember.fullName}
                   </Link>
                   <span> (Lead Link)</span>
                 </List.Item>
@@ -470,7 +492,11 @@ class Circle extends React.Component {
                       <Table.Cell>
                         <Link to={Util.memberUrl(t.member.uid, timeLine)}>
                           <Avatar uid={t.member.uid} size={30} inline spaced shape='rounded' />
-                          {t.member.userName}
+                          <Popup content={t.member.fullName} trigger={
+                            <span>
+                              {t.member.userName}
+                            </span>
+                          } />
                         </Link>
                       </Table.Cell>
                       <Table.Cell>
@@ -628,7 +654,11 @@ class Circle extends React.Component {
                     <Table.Cell>
                       <Link to={Util.memberUrl(e.issuer.uid, timeLine)}>
                         <Avatar uid={e.issuer.uid} size={30} inline spaced shape='rounded' />
-                        {e.issuer.userName}
+                        <Popup content={e.issuer.fullName} trigger={
+                          <span>
+                            {e.issuer.userName}
+                          </span>
+                        } />
                       </Link>
                       {' did some changes'}
                     </Table.Cell>
