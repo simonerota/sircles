@@ -373,7 +373,7 @@ class Circle extends React.Component {
             }
             
             const memberLink = Util.memberUrl(member.uid, timeLine)
-            const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0);
+            const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0)
             extras.push(
               <List.Item key={member.uid}>
                 <Link to={memberLink}>
@@ -402,6 +402,7 @@ class Circle extends React.Component {
                 focusString = ` (${focus})`
               }
               let extramember = r.roleMembers[i].member
+              const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0);
               const extramemberLink = Util.memberUrl(extramember.uid, timeLine)
               extras.push(
                 <List.Item key={extramember.uid}>
@@ -409,7 +410,7 @@ class Circle extends React.Component {
                     <Avatar uid={extramember.uid} size={30} inline spaced shape='rounded' />
                     <Popup content={extramember.fullName} trigger={
                       <span>
-                        {extramember.userName}
+                        {extramember.userName} {isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                       </span>
                     } />
                   </Link>
