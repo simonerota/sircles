@@ -194,7 +194,7 @@ class Circle extends React.Component {
 
       tab =
         <div>
-          <Header as='h3' block>Core Members</Header>
+          <Header as='h3' block>Members and Core Members</Header>
           <Card.Group>
             {coreMembersData.map(d => (
               <Card key={d.member.uid}>
