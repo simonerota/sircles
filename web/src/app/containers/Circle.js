@@ -270,6 +270,7 @@ class Circle extends React.Component {
           roleType === 'engager' ||
           roleType === 'scout' ||
           roleType === 'champion' ||
+          roleType === 'mangler' ||
           roleType === 'magister') coreRoles.push(r)
       }
 
