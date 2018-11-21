@@ -443,7 +443,7 @@ class Circle extends React.Component {
             let leadlinkMember = leadlink.roleMembers[0].member
 
             const memberLink = Util.memberUrl(leadlinkMember.uid, timeLine)
-            const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0);
+            const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0)
 
             fillers.push(
               <List>
@@ -471,33 +471,34 @@ class Circle extends React.Component {
           <Card key={r.uid} color={cardColor}>
             <Card.Content style={{'flexGrow': 0}}>
               {r.roleType === 'normal' && canEdit && viewerPermissions.assignChildRoleMembers &&
-              <Popup content='Add/Edit role assignments' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setRoleSetMember(r.uid) }} />
-                </span>
-              } />
-          }
+                <Popup content='Add/Edit role assignments' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setRoleSetMember(r.uid) }} />
+                  </span>
+                } />
+              }
               {r.roleType === 'circle' && canEdit && viewerPermissions.assignChildCircleLeadLink &&
-              <Popup content='Set Sircle Leader' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setRoleSetLeadLink(r.uid, leadlink.uid) }} />
-                </span>
-              } />
-            }
+                <Popup content='Set Sircle Leader' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setRoleSetLeadLink(r.uid, leadlink.uid) }} />
+                  </span>
+                } />
+              }
               <Card.Header>
                 <Link to={roleLink}>
                   {r.name}{r.name === 'Core Members' && <Icon inverted color='orange' name='selected radio'></Icon>}
                 </Link>
                 {r.roleType === 'circle' && <Label className='labelright' color='blue' horizontal basic size='tiny'>Circle</Label> }
               </Card.Header>
-            </Card.Content>
-            <Card.Content>
-              <Card.Description>
-                {fillers}
-              </Card.Description>
-            </Card.Content>
-          </Card>
-        )
+              </Card.Content>
+              <Card.Content>
+                <Card.Description>
+                  {fillers}
+                </Card.Description>
+              </Card.Content>
+            </Card>
+          )
+        }
       }
 
       tab =
