@@ -451,7 +451,7 @@ class Circle extends React.Component {
           // get leadlink assigned member (there can be only one)
           if (leadlink.roleMembers.length > 0) {
             let leadlinkMember = leadlink.roleMembers[0].member
-
+            let extramember = leadlink.roleMembers
             const memberLink = Util.memberUrl(leadlinkMember.uid, timeLine)
             const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0)
 
