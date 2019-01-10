@@ -945,12 +945,15 @@ func (r *RolesTree) HandleCircleSetCoreRoleMemberCommand(tx *db.Tx, command *com
 		return nil, err
 	}
 
-	// Remove previous lead link
+	/*
+	Uncomment to not allow more than one member for core roles
 	es, err := r.circleUnsetCoreRoleMember(tx, c.RoleType, c.RoleID)
+
 	if err != nil {
 		return nil, err
 	}
 	events = append(events, es...)
+	*/
 
 	events = append(events, ep.NewEventCircleCoreRoleMemberSet(c.RoleID, coreRole.ID, c.MemberID, c.RoleType, c.ElectionExpiration))
 
@@ -1257,8 +1260,7 @@ func (r *RolesTree) circleUnsetCoreRoleMember(tx *db.Tx, roleType models.RoleTyp
 		return nil, nil
 	}
 
-	// Allow more then one member for core roles
-	// events = append(events, ep.NewEventCircleCoreRoleMemberUnset(roleID, coreRole.ID, coreRoleMemberID[0], roleType))
+	events = append(events, ep.NewEventCircleCoreRoleMemberUnset(roleID, coreRole.ID, coreRoleMemberID[0], roleType))
 
 	return events, nil
 }
