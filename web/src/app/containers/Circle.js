@@ -300,9 +300,9 @@ class Circle extends React.Component {
               <List.Item key={member.uid}>
                 <Link to={memberLink}>
                   <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
-                  <Popup content={member.fullName} trigger={
+                  <Popup content={member.userName} trigger={
                     <span>
-                      {member.userName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
+                      {member.fullName}{isCustomCore && <Icon inverted color='orange' name='selected radio'></Icon>}
                     </span>
                   } />
                 </Link>
