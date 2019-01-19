@@ -41,7 +41,7 @@ var Schema = `
 		viewer(): Viewer!
 
 		timeLine(id: TimeLineID): TimeLine
-		timeLines(fromTime: Time, fromID: String, first: Int, last: Int, after: String, before: String, aggregateType: String, aggregateID: ID): TimeLineConnection
+		timeLines(fromTime: Time, fromID: String, first: Int, last: Int, after: String, before: String, aggregateType: String, aggregateType1: String, aggregateID: ID): TimeLineConnection
 
 		rootRole(timeLineID: TimeLineID): Role
 		role(timeLineID: TimeLineID, uid: ID!): Role
@@ -91,6 +91,7 @@ var Schema = `
 
 		createMember(createMemberChange: CreateMemberChange): CreateMemberResult
 		updateMember(updateMemberChange: UpdateMemberChange): UpdateMemberResult
+		updateMemberDisable(updateMemberChangeDisable: UpdateMemberChangeDisable): UpdateMemberResultDisable
 		setMemberPassword(memberUID: ID!, curPassword: String, newPassword: String!): GenericResult
 		setMemberMatchUID(memberUID: ID!, matchUID: String!): GenericResult
 		importMember(loginName: String!): Member
@@ -467,6 +468,20 @@ var Schema = `
 		password: String
 	}
 
+	input UpdateMemberChangeDisable{
+		uid: ID!
+	}
+
+	type UpdateMemberResultDisable {
+		member: Member
+		hasErrors: Boolean!
+		genericError: String
+		updateMemberChangeErrorsDisable: UpdateMemberChangeErrorsDisable
+	}
+
+	type UpdateMemberChangeErrorsDisable {
+	}
+
 	input UpdateMemberChange  {
 		uid: ID!
 		isAdmin: Boolean!
@@ -614,6 +629,7 @@ func unmarshalUID(uid graphql.ID) (util.ID, error) {
 type TimeLineCursor struct {
 	TimeLineID    string
 	AggregateType string
+	AggregateType1 string
 	AggregateID   *util.ID
 }
 
@@ -1156,6 +1172,22 @@ func (m *CreateMemberChange) toCommandChange() (*change.CreateMemberChange, erro
 	return mm, nil
 }
 
+type UpdateMemberChangeDisable struct{
+	UID        graphql.ID
+}
+
+func (m *UpdateMemberChangeDisable) toCommandChange() (*change.UpdateMemberChangeDisable, error) {
+	mm := &change.UpdateMemberChangeDisable{}
+
+	id, err := unmarshalUID(m.UID)
+	if err != nil {
+		return nil, err
+	}
+	mm.ID = id
+	
+	return mm, nil
+}
+
 type UpdateMemberChange struct {
 	UID        graphql.ID
 	IsAdmin    bool
@@ -1283,7 +1315,7 @@ func getTimeLineNumber(ctx context.Context, readDB readdb.ReadDBService, v *util
 		// a negative values means that we will use current timeLineID - v
 
 		n := int(-*v)
-		tls, _, err := readDB.TimeLines(ctx, nil, curTl.Number(), n, false, "", nil)
+		tls, _, err := readDB.TimeLines(ctx, nil, curTl.Number(), n, false, "", "", nil)
 		if err != nil {
 			return 0, err
 		}
@@ -1334,6 +1366,7 @@ func (r *Resolver) TimeLines(ctx context.Context, args *struct {
 	FromTime      *graphql.Time
 	FromID        *string
 	AggregateType *string
+	AggregateType1 *string
 	AggregateID   *graphql.ID
 	First         *float64
 	Last          *float64
@@ -1361,6 +1394,7 @@ func (r *Resolver) TimeLines(ctx context.Context, args *struct {
 	var fromTime *time.Time
 	var fromID int64
 	var aggregateType string
+	var aggregateType1 string
 	var aggregateID *util.ID
 	var err error
 
@@ -1385,6 +1419,7 @@ func (r *Resolver) TimeLines(ctx context.Context, args *struct {
 		}
 		timeLineID = util.TimeLineNumber(tl)
 		aggregateType = cursor.AggregateType
+		aggregateType1 = cursor.AggregateType1
 		aggregateID = cursor.AggregateID
 	}
 	if args.Before != nil {
@@ -1398,6 +1433,7 @@ func (r *Resolver) TimeLines(ctx context.Context, args *struct {
 		}
 		timeLineID = util.TimeLineNumber(tl)
 		aggregateType = cursor.AggregateType
+		aggregateType1 = cursor.AggregateType1
 		aggregateID = cursor.AggregateID
 	}
 	if args.FromTime != nil {
@@ -1426,12 +1462,12 @@ func (r *Resolver) TimeLines(ctx context.Context, args *struct {
 		return nil, err
 	}
 
-	timeLines, hasMoreData, err := s.TimeLines(ctx, fromTime, timeLineID, limit, args.Last == nil, aggregateType, aggregateID)
+	timeLines, hasMoreData, err := s.TimeLines(ctx, fromTime, timeLineID, limit, args.Last == nil, aggregateType, aggregateType1, aggregateID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &timeLineConnectionResolver{s, timeLines, aggregateType, aggregateID, hasMoreData, dataloader.NewDataLoaders(ctx, s)}, nil
+	return &timeLineConnectionResolver{s, timeLines, aggregateType, aggregateType1, aggregateID, hasMoreData, dataloader.NewDataLoaders(ctx, s)}, nil
 }
 
 func (r *Resolver) Viewer(ctx context.Context) (*viewerResolver, error) {
@@ -1896,6 +1932,49 @@ func (r *Resolver) CreateMember(ctx context.Context, args *struct {
 		}
 	}
 	return &createMemberResultResolver{readdb, member, res, tl.Number(), dataloader.NewDataLoaders(ctx, readdb)}, nil
+}
+
+func (r *Resolver) UpdateMemberDisable(ctx context.Context, args *struct {
+	UpdateMemberChangeDisable *UpdateMemberChangeDisable
+}) (*updateMemberResultResolverDisable, error) {
+	readDBListener := ctx.Value("readdblistener").(readdb.ReadDBListener)
+	cs := ctx.Value("commandservice").(*command.CommandService)
+
+	mr, err := args.UpdateMemberChangeDisable.toCommandChange()
+	if err != nil {
+		return nil, err
+	}
+
+	res, groupID, err := cs.UpdateMemberDisable(ctx, mr)
+	if err != nil && err != command.ErrValidation {
+		return nil, err
+	}
+	if err == command.ErrValidation {
+		return &updateMemberResultResolverDisable{nil, nil, res, -1, nil}, nil
+	}
+
+	if _, err := readDBListener.WaitTimeLineForGroupID(ctx, groupID); err != nil {
+		return nil, err
+	}
+
+	readdb, err := r.setupReadDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tl, err := readdb.TimeLineForGroupID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	var member *models.Member
+	if err == nil {
+		member, err = readdb.Member(ctx, tl.Number(), mr.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &updateMemberResultResolverDisable{readdb, member, res, tl.Number(), dataloader.NewDataLoaders(ctx, readdb)}, nil
 }
 
 func (r *Resolver) UpdateMember(ctx context.Context, args *struct {

@@ -36,7 +36,7 @@ type ReadDBService interface {
 	// Queries
 	CurTimeLine(ctx context.Context) *util.TimeLine
 	TimeLine(ctx context.Context, tl util.TimeLineNumber) (*util.TimeLine, error)
-	TimeLines(ctx context.Context, ts *time.Time, tl util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateID *util.ID) ([]*util.TimeLine, bool, error)
+	TimeLines(ctx context.Context, ts *time.Time, tl util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateType1 string, aggregateID *util.ID) ([]*util.TimeLine, bool, error)
 	TimeLineAtTimeStamp(ctx context.Context, t time.Time) (*util.TimeLine, error)
 	TimeLineForGroupID(ctx context.Context, groupID util.ID) (*util.TimeLine, error)
 
@@ -1389,7 +1389,7 @@ func (s *readDBService) TimeLineForGroupID(ctx context.Context, groupID util.ID)
 	return &tl, err
 }
 
-func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateID *util.ID) ([]*util.TimeLine, bool, error) {
+func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateType1 string, aggregateID *util.ID) ([]*util.TimeLine, bool, error) {
 	var tls []*util.TimeLine
 	if limit <= 0 {
 		limit = MaxFetchSize
@@ -1408,8 +1408,8 @@ func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.Ti
 	sb = sb.Limit(uint64(limit + 1))
 
 	if aggregateType != "" {
-		sb = sb.Where(sq.Eq{"aggregatetype": aggregateType})
-	}
+		sb = sb.Where(sq.Or{sq.Eq{"aggregatetype": aggregateType },sq.Eq{"aggregatetype": aggregateType1}})
+	} 
 	if aggregateID != nil {
 		sb = sb.Where(sq.Eq{"aggregateid": aggregateID})
 	}
@@ -2872,6 +2872,18 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 			return err
 		}
 
+	case ep.EventTypeMemberUpdatedDisable:
+		// data := data.(*ep.EventMemberUpdatedDisable)
+		memberID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return err
+		}
+
+		// disable a member by adding end_tl to his last record
+		if err := s.deleteVertex(tl.Number()-1, vertexClassMember, memberID); err != nil {
+			return err
+		}
+
 	case ep.EventTypeMemberPasswordSet:
 		data := data.(*ep.EventMemberPasswordSet)
 		memberID, err := util.IDFromString(event.StreamID)
@@ -2907,6 +2919,7 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 
 	case ep.EventTypeMemberChangeCreateRequested:
 	case ep.EventTypeMemberChangeUpdateRequested:
+	case ep.EventTypeMemberChangeUpdateRequestedDisable:
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 	case ep.EventTypeMemberChangeCompleted:
 
@@ -3222,6 +3235,9 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 	case ep.EventTypeMemberUpdated:
 		//data := data.(*ep.EventMemberUpdated)
 
+	case ep.EventTypeMemberUpdatedDisable:
+		//data := data.(*ep.EventMemberUpdatedDisable)
+
 	case ep.EventTypeMemberPasswordSet:
 		//data := data.(*ep.EventMemberPasswordSet)
 
@@ -3230,6 +3246,7 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 
 	case ep.EventTypeMemberChangeCreateRequested:
 	case ep.EventTypeMemberChangeUpdateRequested:
+	case ep.EventTypeMemberChangeUpdateRequestedDisable:
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 	case ep.EventTypeMemberChangeCompleted:
 

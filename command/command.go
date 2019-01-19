@@ -1063,6 +1063,91 @@ func (s *CommandService) UpdateMember(ctx context.Context, c *change.UpdateMembe
 	return res, groupID, nil
 }
 
+func (s *CommandService) UpdateMemberDisable(ctx context.Context, c *change.UpdateMemberChangeDisable) (*change.UpdateMemberResultDisable, util.ID, error) {
+	res := &change.UpdateMemberResultDisable{}
+
+	tx, err := s.db.NewTx()
+	if err != nil {
+		return nil, util.NilID, err
+	}
+	defer tx.Rollback()
+	readDBService, err := readdb.NewReadDBService(tx)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+
+	// read current timestamp
+	// end_tl is equal to start_tl-1
+	curTl := readDBService.CurTimeLine(ctx)
+	curTlSeq := curTl.Number()
+
+	member, err := readDBService.Member(ctx, curTlSeq, c.ID)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+	if member == nil {
+		res.HasErrors = true
+		res.GenericError = errors.Errorf("member with id %s doesn't exist", c.ID)
+		return res, util.NilID, ErrValidation
+	}
+
+	// Only an admin or the same member can disable a member
+	callingMember, err := readDBService.CallingMember(ctx, curTlSeq)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+
+	// an active member not have end_tl
+	// read active member from db
+	members, err := readDBService.MembersByIDs(ctx, curTlSeq, nil)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+
+	// count active admin
+	adminCount := 0
+	for _, m := range members {
+		if m.IsAdmin {
+			adminCount++
+		}
+	}
+
+	// cannot disable last admin
+	if member.IsAdmin && adminCount <= 1 {
+		res.HasErrors = true
+		res.GenericError = errors.Errorf("Cannot disable last admin")
+	}
+
+	if res.HasErrors {
+		return res, util.NilID, ErrValidation
+	}
+
+	correlationID := s.uidGenerator.UUID("")
+	causationID := s.uidGenerator.UUID("")
+	command := commands.NewCommand(commands.CommandTypeRequestUpdateMemberDisable, correlationID, causationID, callingMember.ID, commands.NewCommandRequestUpdateMemberDisable(c, member.ID))
+
+	memberChangeID := s.uidGenerator.UUID("")
+	mcr := aggregate.NewMemberChangeRepositoryDisable(s.es, s.uidGenerator)
+	mc, err := mcr.Load(memberChangeID)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+
+	groupID, _, err := aggregate.ExecCommand(command, mc, s.es, s.uidGenerator)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+
+	log.Debugf("waiting for request completed event for memberChangeID: %s", memberChangeID)
+	groupID, err = s.waitMemberChangeRequest(ctx, memberChangeID)
+	if err != nil {
+		return nil, util.NilID, err
+	}
+	log.Debugf("received request completed event for memberChangeID: %s, groupID: %s", memberChangeID, groupID)
+
+	return res, groupID, nil
+}
+
 func (s *CommandService) SetMemberPassword(ctx context.Context, memberID util.ID, curPassword, newPassword string) (*change.GenericResult, util.ID, error) {
 	res := &change.GenericResult{}
 	if newPassword == "" {

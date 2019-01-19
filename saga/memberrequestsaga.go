@@ -281,6 +281,35 @@ func (s *MemberRequestSaga) HandleEvent(event *eventstore.StoredEvent) ([]ep.Eve
 			return nil, err
 		}
 
+	case ep.EventTypeMemberChangeUpdateRequestedDisable:
+		data := data.(*ep.EventMemberChangeUpdateRequestedDisable)
+		memberChangeID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return nil, err
+		}
+
+		mr := aggregate.NewMemberRepository(s.es, s.uidGenerator)
+		m, err := mr.Load(data.MemberID)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debugf("updating memberID %s", data.MemberID)
+		command := commands.NewCommand(commands.CommandTypeUpdateMemberDisable, correlationID, causationID, util.NilID, &commands.UpdateMemberDisable{
+			MemberChangeID: memberChangeID,
+		})
+
+		_, _, err = aggregate.ExecCommand(command, m, s.es, s.uidGenerator)
+		if _, ok := err.(aggregate.HandleCommandError); ok {
+			// Rollback reservations if the member update command returned an error
+			log.Error(err)
+
+			if err := s.completeMemberChangeDisable(correlationID, causationID, memberChangeID, fmt.Sprintf("error updating member: %v", err)); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 		data := data.(*ep.EventMemberChangeSetMatchUIDRequested)
 		memberChangeID, err := util.IDFromString(event.StreamID)
@@ -348,6 +377,13 @@ func (s *MemberRequestSaga) HandleEvent(event *eventstore.StoredEvent) ([]ep.Eve
 		}
 
 		if err := s.completeMemberChange(correlationID, causationID, data.MemberChangeID, ""); err != nil {
+			return nil, err
+		}
+
+	case ep.EventTypeMemberUpdatedDisable:
+		data := data.(*ep.EventMemberUpdatedDisable)
+
+		if err := s.completeMemberChangeDisable(correlationID, causationID, data.MemberChangeID, ""); err != nil {
 			return nil, err
 		}
 
@@ -515,6 +551,28 @@ func (s *MemberRequestSaga) releaseMatchUID(correlationID, causationID util.ID, 
 
 func (s *MemberRequestSaga) completeMemberChange(correlationID, causationID util.ID, memberChangeID util.ID, errReason string) error {
 	mcr := aggregate.NewMemberChangeRepository(s.es, s.uidGenerator)
+	mc, err := mcr.Load(memberChangeID)
+	if err != nil {
+		return err
+	}
+
+	var command *commands.Command
+	if errReason == "" {
+		log.Debugf("completing memberChangeID %s", memberChangeID)
+		command = commands.NewCommand(commands.CommandTypeCompleteRequest, correlationID, causationID, util.NilID, &commands.CompleteRequest{})
+	} else {
+		log.Debugf("completing memberChangeID %s with error", memberChangeID)
+		command = commands.NewCommand(commands.CommandTypeCompleteRequest, correlationID, causationID, util.NilID, &commands.CompleteRequest{Error: true, Reason: errReason})
+	}
+
+	if _, _, err := aggregate.ExecCommand(command, mc, s.es, s.uidGenerator); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MemberRequestSaga) completeMemberChangeDisable(correlationID, causationID util.ID, memberChangeID util.ID, errReason string) error {
+	mcr := aggregate.NewMemberChangeRepositoryDisable(s.es, s.uidGenerator)
 	mc, err := mcr.Load(memberChangeID)
 	if err != nil {
 		return err
