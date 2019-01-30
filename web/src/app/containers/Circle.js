@@ -132,6 +132,8 @@ class Circle extends React.Component {
       case 'magister': return 8
       case 'mangler': return 9
       case 'secretary': return 4
+      case 'securityenabler': return 10
+      case 'reporter': return 11
       default: return 0
     }
   }
@@ -271,7 +273,9 @@ class Circle extends React.Component {
           roleType === 'scout' ||
           roleType === 'champion' ||
           roleType === 'mangler' ||
-          roleType === 'magister') coreRoles.push(r)
+          roleType === 'magister'||
+          roleType === 'securityenabler'||
+          roleType === 'reporter') coreRoles.push(r)
       }
 
       coreRoles.sort((a, b) => {
