@@ -113,6 +113,8 @@ var Schema = `
 		MAGISTER
 		MANGLER
 		SECRETARY
+		SECURITYENABLER
+		REPORTER
 	}
 
 	scalar Time

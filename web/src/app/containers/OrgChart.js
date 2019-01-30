@@ -183,7 +183,9 @@ class OrgChart extends React.Component {
       node.data.roleType === 'scout' ||
       node.data.roleType === 'magister' ||
       node.data.roleType === 'mangler' ||
-      node.data.roleType === 'secretary') {
+      node.data.roleType === 'secretary' ||
+      node.data.roleType === 'securityenabler' ||
+      node.data.roleType === 'reporter') {
         fill = d3.color('#9cd8ff')
       } else if (node.data.roleType === 'circle') {
         fill = d3.color('hsl(0, 0%, 97%)')

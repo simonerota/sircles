@@ -5,18 +5,20 @@ type RoleType string
 // Don't change the names since these values are usually saved in the
 // database
 const (
-	RoleTypeUndefined   RoleType = "undefined"
-	RoleTypeNormal      RoleType = "normal"
-	RoleTypeCircle      RoleType = "circle"
-	RoleTypeLeadLink    RoleType = "leadlink"
-	RoleTypeRepLink     RoleType = "replink"
-	RoleTypeFacilitator RoleType = "facilitator"
-	RoleTypeEngager     RoleType = "engager"
-	RoleTypeChampion    RoleType = "champion"
-	RoleTypeScout       RoleType = "scout"
-	RoleTypeMagister    RoleType = "magister"
-	RoleTypeMangler     RoleType = "mangler"
-	RoleTypeSecretary   RoleType = "secretary"
+	RoleTypeUndefined   		RoleType = "undefined"
+	RoleTypeNormal      		RoleType = "normal"
+	RoleTypeCircle      		RoleType = "circle"
+	RoleTypeLeadLink    		RoleType = "leadlink"
+	RoleTypeRepLink     		RoleType = "replink"
+	RoleTypeFacilitator 		RoleType = "facilitator"
+	RoleTypeEngager     		RoleType = "engager"
+	RoleTypeChampion    		RoleType = "champion"
+	RoleTypeScout       		RoleType = "scout"
+	RoleTypeMagister    		RoleType = "magister"
+	RoleTypeMangler     		RoleType = "mangler"
+	RoleTypeSecretary   		RoleType = "secretary"
+	RoleTypeSecurityEnabler		RoleType = "securityenabler"
+	RoleTypeReporter	   		RoleType = "reporter"
 )
 
 func (r RoleType) IsCoreRoleType() bool {
@@ -28,7 +30,9 @@ func (r RoleType) IsCoreRoleType() bool {
 		r == RoleTypeScout ||
 		r == RoleTypeMagister ||
 		r == RoleTypeMangler ||
-		r == RoleTypeSecretary
+		r == RoleTypeSecretary ||
+		r == RoleTypeSecurityEnabler ||
+		r == RoleTypeReporter
 }
 
 func (r RoleType) String() string {
@@ -59,6 +63,10 @@ func RoleTypeFromString(r string) RoleType {
 		return RoleTypeMangler
 	case "secretary":
 		return RoleTypeSecretary
+	case "securityenabler":
+		return RoleTypeSecurityEnabler
+	case "reporter":
+		return RoleTypeReporter
 	default:
 		return RoleTypeUndefined
 	}
@@ -110,24 +118,28 @@ func GetCoreRoles() []*CoreRoleDefinition {
 				Purpose:  "Sircle Leader holds the Purpose of the overall Sircle",
 			},
 			Domains: []*Domain{
-				{Description: "Allocate Role within Sircle"},
+				{Description: "Allocate Roles within the Sircle"},
 			},
 			Accountabilities: []*Accountability{
 				{Description: "Structure Sircle’s Governance to enact its Purpose and Accountabilities"},
 				{Description: "Sircle's Act Owner"},
-				{Description: "Allocating the Circle's resources across its various Projects and/or Roles"},
-				{Description: "Assign people to Sircle's Roles and Monitor the fit"},
+				{Description: "Create new roles if needed"},
+				{Description: "Allocate the Sircle's resources across its various Projects and/or Roles"},
+				{Description: "Assign people to Sircle's Roles and monitor the fit"},
 				{Description: "Offer feedback to enhance fit and re-assign Roles to other people when it could be useful for enhancing fit"},
-				{Description: "Allocate Sircle's resources through its various Projects and/or Roles"},
-				{Description: "Establish priorities and Strategies for the Sircle"},
-				{Description: "Define a more general Strategy for the Sircle, or multiple Strategies, which are heuristics that guide the Sircle's Roles in self-identifying priorities on an ongoing basis"},
-				{Description: "Define kpi for the Sircle"},
-				{Description: "Remove constraints within the Sircle through Super-Sircle's Purpose and Accountabilities"},
-				{Description: "Remove impediments (Facilitator)"},
+				{Description: "Establish priorities and strategies for the Sircle"},
+				{Description: "Define a general strategy for the Sircle, or multiple strategies, which are heuristics that guide the Sircle's roles in self-identifying priorities on an ongoing basis"},
+				{Description: "Define kpi for the Sircle’s roles"},
+				{Description: "Remove constraints and impediments within the Sircle"},
+				{Description: "Manage conflicts"},
+				{Description: "Identify the need of new sub-sircles and start the sub-sircle creation process with “Sircle of Staffing”"},
 				{Description: "Team coaching"},
-				{Description: "Write and keep up to date Value Proposition (VP) document"},
-				{Description: "Write a blog + twitter/linkedin/wetalk updates about new trends and events and nurture followers"},
-				{Description: "Support Hr caring people through leveraging Sorint values"},
+				{Description: "Write and keep up to date Value Propositions (leanvas.sorint.it)"},
+				{Description: "Support “People Development Sircle” caring members through leveraging Sorint values"},
+				{Description: "Owner of the staff capacity process. He reports any issues to “Sircle of Staffing”"},
+				{Description: "Leader of the onboarding process of new core members"},
+				{Description: "Owner of the performances evaluation process"},
+				{Description: "Report and collaborate with “People Development Sircle” measuring core members performance behavior, motivation and skills improvement"},
 			},
 		},
 		{
@@ -157,20 +169,22 @@ func GetCoreRoles() []*CoreRoleDefinition {
 			Role: &Role{
 				Name:     "Engager",
 				RoleType: RoleTypeEngager,
-				Purpose:  "Extreme customer satisfaction and proposing real added value solutions with visible Sorint signature",
+				Purpose:  "Extreme customer satisfaction proposing real added value solutions with visible Sorint signature",
 			},
 			Domains: []*Domain{
 				{Description: "Technical Sircles"},
 			},
 			Accountabilities: []*Accountability{
-				{Description: "Define the number of resources needed to deliver the activity and their required skills for each one"},
-				{Description: "Provide the Statement of work for the activity which allows Sorint to build a trade offer defining  solution studies (proposal, solution design, etc ...)"},
-				{Description: "Build Use Cases and solutions description to be used on sales activities"},
-				{Description: "Attend meetings when Business Developer asks for support for his/her sales activities"},
-				{Description: "Provide Product Service Presentation"},
+				{Description: "Collect needs, pains and requirements directly from the customer to better understand the opportunities"},
+				{Description: "Identify the right solution that matches business outcom"},
+				{Description: "Provide the Statement of work for the activity which allows Sorint to build a trade offer defining solution studies (proposal, solution design, etc ...)"},
+				{Description: "Define the number of resources needed to deliver activities and the required skills for each of them"},
+				{Description: "At the end of all activities, provide a document useful for use cases and value proposition improvement"},
+				{Description: "Present Sorint approach, methodologies, best practices…"},
+				{Description: "Solution/Service/Product Presentation"},
 				{Description: "Build and run Poc"},
 				{Description: "Show Different Technologies through Use Cases"},
-				{Description: "Show Product's Best Practices"},
+				{Description: "Help the Sircle Leader to update the Sircle Purpose, Domain and Value proposition after every Strategy Meetings"},
 			},
 		},
 		{
@@ -180,72 +194,82 @@ func GetCoreRoles() []*CoreRoleDefinition {
 				Purpose:  "Extreme customer satisfaction and establishing valued relationship with visible Sorint signature, the Sorint ambassador",
 			},
 			Domains: []*Domain{
-				{Description: "Customer Sircle"},
+				{Description: "Customer focus Sircle"},
 			},
 			Accountabilities: []*Accountability{
 				{Description: "Identify and map customer organization and various managers"},
-				{Description: "Study the technical sircles's value proposition"},
-				{Description: "Identify successful cases which could be offered to the client"},
-				{Description: "Arrange regular meeting with the customer's referrals in order to share the vp"},
-				{Description: "Open opportunities for any intercepted customer needs"},
-				{Description: "Align with and compare to the Sircle leader for opportunities"},
-				{Description: "Report competitors presence in the site (name and where)"},
-				{Description: "Report negative and positive customer feedback on our work"},
+				{Description: "Study the technical sircles's value propositions"},
+				{Description: "Arrange regular meetings with the customer key people in order to share the vp"},
+				{Description: "Align with the Sircle leader for opportunities"},
+				{Description: "Open opportunities for any intercepted customer need"},
+				{Description: "Report competitors presence on the customer site (name and where)"},
+				{Description: "Report negative and positive customer feedback on our services"},
 				{Description: "Report negative and positive customer feedback on competitors works"},
-				{Description: "Report any changes in the site that could lead to opportunities, instability or problems"},
-				{Description: "Report intentions in order to purchase new products"},
+				{Description: "Report any changes on the site that could lead to opportunities, instability or problems"},
+				{Description: "Report customer intentions to purchase new products"},
 				{Description: "Be aware of all customer-related opportunities"},
-				{Description: "Organize Meetings/phone calls with Sorint Business Developer for alignment"},
+				{Description: "Organize meetings/phone calls with Sorint Business Developers for alignment"},
+				{Description: "Help the Sircle Leader to update the Sircle Purpose, Domain and Value proposition after every Strategy Meeting"},
 			},
 		},		
 		{
 			Role: &Role{
 				Name:     "Talent Handler",
 				RoleType: RoleTypeScout,
-				Purpose:  "Support HR in managing new placements",
+				Purpose:  "Help Sorintians to have only talented collegues",
 			},
 			Domains: []*Domain{
-				{Description: "Customer Sircle"},
+				{Description: "Sircle"},
 			},
 			Accountabilities: []*Accountability{
-				{Description: "Check CVs offers and giving feedback to HR and candidates"},
-				{Description: "Conduct Job pre-interview/interview with candidate"},
-				{Description: "Read and edit CVs in order to the manifest required features"},
-				{Description: "Prepare a candidate for the customer interview"},
-				{Description: "Submit a candidate for the customer interview"},
-				{Description: "Support HR in technical talks with candidates"},
+				{Description: "Responsible for  keeping core members CV updated (My BIO)"},
+				{Description: "Understand the right characteristics of the ideal candidate for customers requests"},
+				{Description: "Help “Sircle of Staffing” to review the candidate’s CV"},
+				{Description: "Help “Sircle of Staffing” or “People Development  Sircle” with the candidates interviews"},
+				{Description: "Help candidates to improve CV and Linkedin in order to give the right information to the customer"},
+				{Description: "Give the candidate all the needed information in order to cope with the customer interview(dressing code, key points, suggestions …)"},
+				{Description: "Introduce the candidate to the customer (sending CV, attending the meeting)"},
 			},
 		},
 		{
 			Role: &Role{
 				Name:     "Academier",
 				RoleType: RoleTypeMagister,
-				Purpose:  "Circle governance and operational practices aligned with the Constitution",
+				Purpose:  "Neverending Sorintians Growth",
 			},
 			Domains: []*Domain{
-				{Description: "Sircles Core Members"},
+				{Description: "Sircle Core Members"},
 			},
 			Accountabilities: []*Accountability{
-				{Description: "Explicit the core member education needs in order to achieve the Sircle purpose"},
+				{Description: "Following the Sircle Leader growth strategies identify skill gaps"},
 				{Description: "Write a Training Path"},
+				{Description: "Identify course in academy hub"},
+				{Description: "Suggest Academia about courses in the market"},
+				{Description: "Keep aligned Academia on the released trainings pat"},
+				{Description: "Monitor the educational path results"},
+				{Description: "Responsible for the apprentices' training plan"},
 			},
 		},
 		{
 			Role: &Role{
 				Name:     "Planner",
 				RoleType: RoleTypeMangler,
-				Purpose:  "After the Sircle leader assign member to a Role, The planner takes care of the right ACO, ACI activities assignation and scheduling for all the members",
+				Purpose:  "The right project in the right time with maximum satisfaction",
 			},
 			Domains: []*Domain{
 				{Description: "Services Activities under Sircle's responsibility"},
 			},
 			Accountabilities: []*Accountability{
-				{Description: "Keep update the schedule"},
-				{Description: "Schedule properly to be able to complete Projects/services successfully"},
-				{Description: "Keep update the consultants and project leads on a regular basis"},
-				{Description: "Identify bottlenecks and priorities conflicts reporting to Sircle Leader and PMO"},
+				{Description: "Schedule properly assigning the right member to the right “ACO Profile” in agreement with the Sircle Leader’s instructions"},
+				{Description: "Keep the schedule update"},
+				{Description: "Schedule properly in order to successfully complete project/services (on time, with the right effort)"},
 				{Description: "Manage resources requests conflicts"},
-				{Description: "Inform PMO about People Availability"},
+				{Description: "Inform PMO about people Availability"},
+				{Description: "Keep all stakeholders updated about projects or services progress"},
+				{Description: "Pay attention and act in advance planning critical periods (holidays …)"},
+				{Description: "Holidays disposal"},
+				{Description: "Solve NC"},
+				{Description: "Close ACOs as soon as the project is finished"},
 			},
 		},
 		{
@@ -261,6 +285,38 @@ func GetCoreRoles() []*CoreRoleDefinition {
 				{Description: "Scheduling the Circle’s required meetings, and notifying all Core Circle Members of scheduled times and locations"},
 				{Description: "Capturing and publishing the outputs of the Circle’s required meetings, and maintaining a compiled view of the Circle’s current Governance, checklist items, and metrics"},
 				{Description: "Interpreting Governance and the Constitution upon request"},
+			},
+		},
+		{
+			Role: &Role{
+				Name:     "Security Enabler",
+				RoleType: RoleTypeSecurityEnabler,
+				Purpose:  "Ensure that personal data, Sorint data and customer data are protected",
+			},
+			Domains: []*Domain{
+				{Description: "Sircle"},
+			},
+			Accountabilities: []*Accountability{
+				{Description: "Know Sorint policies and procedures on security(https://clann.sorint.it/policies-procedures2)"},
+				{Description: "Ensure the information security (data, communications, documents...) based on the classification"},
+				{Description: "Contribute to reporting improvements to Sorint best practices"},
+			},
+		},
+		{
+			Role: &Role{
+				Name:     "Reporter",
+				RoleType: RoleTypeReporter,
+				Purpose:  "Make all Sorint participate in what happens in the Sircle and make the Sircle participate in what happens in Sorint",
+			},
+			Domains: []*Domain{
+				{Description: "Sircle"},
+			},
+			Accountabilities: []*Accountability{
+				{Description: "Let Sorint's activities be internally perceived: events, prj, news, various updates…"},
+				{Description: "Direct core members to inquire about what happens in the other Sircles"},
+				{Description: "Promote in the Sorint Sircle posts published on social networks"},
+				{Description: "Advertise business events"},
+				{Description: "Publish a post a monthtelling what happened in the Sircle (success stories, news, projects evolution, courses…)"},
 			},
 		},
 	}
