@@ -284,16 +284,18 @@ class OrgChart extends React.Component {
 
       // We are using an html foreignObject because it's definetly faster than a svg text object
       return (
-        <foreignObject key={node.data.uid} width={width} height={height} style={foStyle} transform={transform}>
-          { !transitioning && node === zoomnode && zoomnode.data.roleType !== 'circle' &&
-            <OrgChartDetail timeLine={timeLine} roleUID={zoomnode.data.uid} /> ||
-            <div style={divStyle}>
-              <Link key={node.data.uid} style={linkStyle} to={Util.roleUrl(node.data.uid, timeLine)}>
-                {node.data.name}
-              </Link>
-            </div>
-          }
-        </foreignObject>
+        <g transform={transform}>
+          <foreignObject key={node.data.uid} width={width} height={height} style={foStyle}>
+            { !transitioning && node === zoomnode && zoomnode.data.roleType !== 'circle' &&
+              <OrgChartDetail timeLine={timeLine} roleUID={zoomnode.data.uid} /> ||
+              <div style={divStyle}>
+                <Link key={node.data.uid} style={linkStyle} to={Util.roleUrl(node.data.uid, timeLine)}>
+                  {node.data.name}
+                </Link>
+              </div>
+            }
+          </foreignObject>
+        </g>
       )
     })
   }
