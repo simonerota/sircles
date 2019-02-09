@@ -656,7 +656,7 @@ func unmarshalTimeLineCursor(s string) (*TimeLineCursor, error) {
 }
 
 type MemberConnectionCursor struct {
-	TimeLineID   util.TimeLineNumber
+	TimeLineID   string
 	SearchString string
 	FullName     string
 }
@@ -1615,7 +1615,11 @@ func (r *Resolver) Members(ctx context.Context, args *struct {
 		if err != nil {
 			return nil, err
 		}
-		timeLineID = cursor.TimeLineID
+		tl, err := strconv.ParseInt(cursor.TimeLineID, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		timeLineID = util.TimeLineNumber(tl)
 		search = cursor.SearchString
 		fullName = &cursor.FullName
 

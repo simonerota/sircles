@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/sorintlab/sircles/change"
 	"github.com/sorintlab/sircles/dataloader"
@@ -193,7 +194,7 @@ type memberEdgeResolver struct {
 }
 
 func (r *memberEdgeResolver) Cursor() (string, error) {
-	return marshalMemberConnectionCursor(&MemberConnectionCursor{TimeLineID: r.timeLineID, FullName: r.member.FullName})
+	return marshalMemberConnectionCursor(&MemberConnectionCursor{TimeLineID: strconv.FormatInt(int64(r.timeLineID), 10), FullName: r.member.FullName})
 }
 
 func (r *memberEdgeResolver) Member() *memberResolver {
