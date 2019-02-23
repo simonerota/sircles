@@ -1,7 +1,7 @@
 import React from 'react'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon } from 'semantic-ui-react'
+import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon, Confirm } from 'semantic-ui-react'
 
 import { withError } from '../modules/Error'
 import Util from '../modules/Util'
@@ -15,7 +15,8 @@ class Members extends React.Component {
   }
 
   resetComponent = () => this.setState({
-    searchString: ''
+    searchString: '',
+    isOpenActivateMember: false
   })
 
   componentWillReceiveProps (nextProps) {
@@ -38,6 +39,18 @@ class Members extends React.Component {
 
   handleNewMember = () => {
     this.props.history.push('/settings/admin/member/new')
+  }
+
+  handleActivateMember = () => {
+    this.closeActivateMember()
+  }
+
+  openActivateMember = () => {
+    this.setState({ 'isOpenActivateMember': true })
+  }
+
+  closeActivateMember = () => {
+    this.setState({ 'isOpenActivateMember': false })
   }
 
   render () {
@@ -114,10 +127,12 @@ class Members extends React.Component {
                       {m.isAdmin && <Icon color='green' name='checkmark' />}
                     </Table.Cell>
                     <Table.Cell>
-                      {m.isDisable && <Icon color='green' name='checkmark' />}
+                      {m.isDisable && <Icon color='red' name='x icon' />}
                     </Table.Cell>
                     <Table.Cell collapsing >
-                      <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />
+                    {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
+                    {m.isDisable && <Icon name='undo' link onClick={this.openActivateMember} />}
+                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
                     </Table.Cell>
                   </Table.Row>
           ))}
