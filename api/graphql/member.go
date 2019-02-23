@@ -125,6 +125,15 @@ func (r *memberResolver) Email() string {
 	return r.m.Email
 }
 
+func (r *memberResolver) IsDisable() bool {
+	//var end_tl sql.NullInt64
+	if r.m.Vertex.EndTl == nil {
+		return false
+	} else {
+		return true
+	}
+}
+
 func (r *memberResolver) Circles() (*[]*memberCircleEdgeResolver, error) {
 	data, err := r.dataLoaders.Get(r.timeLineID).MemberCircleEdges.Load(r.m.ID.String())()
 	if err != nil {
@@ -292,8 +301,6 @@ func (r *updateMemberChangeErrorsResolver) FullName() *string {
 func (r *updateMemberChangeErrorsResolver) Email() *string {
 	return errorToStringP(r.r.Email)
 }
-
-
 
 type updateMemberResultResolverDisable struct {
 	s          readdb.ReadDBService

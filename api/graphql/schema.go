@@ -204,6 +204,8 @@ var Schema = `
 		roles: [MemberRoleEdge!]
 		// Member tensions, only the member can see them
 		tensions: [Tension!]
+
+		isDisable: Boolean!
 	}
 
 	type MemberConnection {

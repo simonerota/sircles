@@ -95,6 +95,7 @@ class Members extends React.Component {
                   <Table.HeaderCell>UserName</Table.HeaderCell>
                   <Table.HeaderCell>Full Name</Table.HeaderCell>
                   <Table.HeaderCell>Admin</Table.HeaderCell>
+                  <Table.HeaderCell>Disable</Table.HeaderCell>
                   <Table.HeaderCell />
                 </Table.Row>
               </Table.Header>
@@ -111,6 +112,9 @@ class Members extends React.Component {
                     </Table.Cell>
                     <Table.Cell>
                       {m.isAdmin && <Icon color='green' name='checkmark' />}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {m.isDisable && <Icon color='green' name='checkmark' />}
                     </Table.Cell>
                     <Table.Cell collapsing >
                       <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />
@@ -140,6 +144,7 @@ const MembersQuery = gql`
             member {
               uid
               isAdmin
+              isDisable
               userName
               fullName
             }
@@ -159,6 +164,7 @@ const MoreMembersQuery = gql`
               isAdmin
               userName
               fullName
+              isDisable
             }
           }
           hasMoreData
