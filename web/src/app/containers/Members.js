@@ -67,7 +67,7 @@ class Members extends React.Component {
     const { searchString } = this.state
 
     const viewer = viewerQuery.viewer
-    const members = membersQuery.members
+    const members = membersQuery.membersList
 
     return (
       <Container>
@@ -134,7 +134,7 @@ Members.propTypes = {
 
 const MembersQuery = gql`
       query MembersQuery($first: Int, $search: String){
-        members(first: $first, search: $search) {
+        membersList(first: $first, search: $search) {
           edges {
             cursor
             member {
@@ -151,7 +151,7 @@ const MembersQuery = gql`
 
 const MoreMembersQuery = gql`
       query MoreMembersQuery($after: Int){
-        members(first: $first, after: $after) {
+        membersList(first: $first, after: $after) {
           edges {
             cursor
             member {
@@ -190,19 +190,19 @@ graphql(MembersQuery, {
     },
     fetchPolicy: 'network-only'
   }),
-  props ({ data: { loading, error, refetch, members, fetchMore } }) {
+  props ({ data: { loading, error, refetch, membersList, fetchMore } }) {
     console.log('loading', loading)
     console.log('error', error)
-
+    let members = membersList
     let cursor
     const cursors = members && members.edges.map((e) => (e.cursor))
     if (cursors && cursors.length > 0) cursor = cursors[cursors.length - 1]
-    const membersList = members && members.edges.map((e) => (e.member))
+    membersList = members && members.edges.map((e) => (e.member))
     return {
       membersQuery: {
         loading,
         error,
-        members: membersList,
+        membersList: membersList,
         hasMoreData: members && members.hasMoreData,
         loadMoreEntries: () => {
           return fetchMore({
@@ -215,7 +215,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...previousResult.members.edges, ...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })
@@ -235,7 +235,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })
@@ -254,7 +254,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })

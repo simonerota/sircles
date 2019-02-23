@@ -22,7 +22,7 @@ import (
 	graphql "github.com/neelance/graphql-go"
 	"github.com/pkg/errors"
 	"github.com/renstrom/shortuuid"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var test bool
@@ -49,6 +49,7 @@ var Schema = `
 		tension(timeLineID: TimeLineID, uid: ID!): Tension
 
 		members(timeLineID: TimeLineID, search: String, first: Int, after: String): MemberConnection
+		membersList(timeLineID: TimeLineID, search: String, first: Int, after: String): MemberConnection
 
 		// TODO(sgotti) add pagination
 		roles(timeLineID: TimeLineID): [Role!]
@@ -629,10 +630,10 @@ func unmarshalUID(uid graphql.ID) (util.ID, error) {
 }
 
 type TimeLineCursor struct {
-	TimeLineID    string
-	AggregateType string
+	TimeLineID     string
+	AggregateType  string
 	AggregateType1 string
-	AggregateID   *util.ID
+	AggregateID    *util.ID
 }
 
 func marshalTimeLineCursor(c *TimeLineCursor) (string, error) {
@@ -1174,8 +1175,8 @@ func (m *CreateMemberChange) toCommandChange() (*change.CreateMemberChange, erro
 	return mm, nil
 }
 
-type UpdateMemberChangeDisable struct{
-	UID        graphql.ID
+type UpdateMemberChangeDisable struct {
+	UID graphql.ID
 }
 
 func (m *UpdateMemberChangeDisable) toCommandChange() (*change.UpdateMemberChangeDisable, error) {
@@ -1186,7 +1187,7 @@ func (m *UpdateMemberChangeDisable) toCommandChange() (*change.UpdateMemberChang
 		return nil, err
 	}
 	mm.ID = id
-	
+
 	return mm, nil
 }
 
@@ -1365,15 +1366,15 @@ func (r *Resolver) TimeLine(ctx context.Context, args *struct {
 }
 
 func (r *Resolver) TimeLines(ctx context.Context, args *struct {
-	FromTime      *graphql.Time
-	FromID        *string
-	AggregateType *string
+	FromTime       *graphql.Time
+	FromID         *string
+	AggregateType  *string
 	AggregateType1 *string
-	AggregateID   *graphql.ID
-	First         *float64
-	Last          *float64
-	After         *string
-	Before        *string
+	AggregateID    *graphql.ID
+	First          *float64
+	Last           *float64
+	After          *string
+	Before         *string
 }) (*timeLineConnectionResolver, error) {
 	// accept only an After or a Before cursor
 	if args.After != nil && args.Before != nil {
@@ -1639,6 +1640,61 @@ func (r *Resolver) Members(ctx context.Context, args *struct {
 	}
 
 	members, hasMoreData, err := s.Members(ctx, timeLineID, search, first, fullName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &memberConnectionResolver{s, members, hasMoreData, timeLineID, dataloader.NewDataLoaders(ctx, s)}, nil
+}
+
+func (r *Resolver) MembersList(ctx context.Context, args *struct {
+	TimeLineID *util.TimeLineNumber
+	Search     *string
+	First      *float64
+	After      *string
+}) (*memberConnectionResolver, error) {
+	s, err := r.setupReadDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// accept only a cursor or a timeline + search
+	if args.After != nil && (args.Search != nil || args.TimeLineID != nil) {
+		return nil, errors.New("only the cursor or the search and timeline can be provided")
+	}
+
+	var timeLineID util.TimeLineNumber
+	var search string
+	var fullName *string
+	if args.After != nil {
+		cursor, err := unmarshalMemberConnectionCursor(*args.After)
+		if err != nil {
+			return nil, err
+		}
+		tl, err := strconv.ParseInt(cursor.TimeLineID, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		timeLineID = util.TimeLineNumber(tl)
+		search = cursor.SearchString
+		fullName = &cursor.FullName
+
+	} else {
+		var err error
+		timeLineID, err = getTimeLineNumber(ctx, s, args.TimeLineID)
+		if err != nil {
+			return nil, err
+		}
+		if args.Search != nil && *args.Search != "" {
+			search = *args.Search
+		}
+	}
+	first := 0
+	if args.First != nil {
+		first = int(*args.First)
+	}
+
+	members, hasMoreData, err := s.MembersList(ctx, timeLineID, search, first, fullName)
 	if err != nil {
 		return nil, err
 	}

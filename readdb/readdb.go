@@ -19,7 +19,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var log = slog.S()
@@ -52,6 +52,7 @@ type ReadDBService interface {
 	Tension(ctx context.Context, tl util.TimeLineNumber, id util.ID) (*models.Tension, error)
 	MembersByIDs(ctx context.Context, tl util.TimeLineNumber, membersIDs []util.ID) ([]*models.Member, error)
 	Members(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error)
+	MembersList(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error)
 	Roles(ctx context.Context, tl util.TimeLineNumber, rolesIDs []util.ID) ([]*models.Role, error)
 	RolesAdditionalContent(ctx context.Context, tl util.TimeLineNumber, rolesIDs []util.ID) (map[util.ID]*models.RoleAdditionalContent, error)
 
@@ -227,6 +228,7 @@ const (
 	vertexClassRoleMemberEdge        vertexClass = "rolememberedge"
 	vertexClassMemberRoleEdge        vertexClass = "memberroleedge"
 	vertexClassTension               vertexClass = "tension"
+	vertexClassMembersList           vertexClass = "memberslist"
 )
 
 func (vc vertexClass) String() string {
@@ -278,6 +280,8 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		sb = accountabilitySelect
 	case vertexClassMember:
 		sb = memberSelect
+	case vertexClassMembersList:
+		sb = memberSelect
 	case vertexClassMemberAvatar:
 		sb = memberAvatarSelect
 	case vertexClassTension:
@@ -286,7 +290,17 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		return nil, errors.Errorf("unknown vertex class: %q", vertexClass)
 	}
 
-	sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
+	// verify if the request is about a member and
+	// check if timestamp is equal to the current timestamp
+	// in this way, timeline events do not use the disable query
+	if vertexClass == vertexClassMembersList {
+		// get all ids of active and disable members
+		disableMembersQuery := "SELECT DISTINCT m1.id FROM member m1, member m2 WHERE (m1.end_tl IS NOT NULL AND m2.end_tl IS NOT NULL) OR (m1.end_tl IS NULL AND m2.end_tl IS NULL)"
+		// add condition to the query
+		sb = sb.Where("member.id IN (" + disableMembersQuery + ")")
+	} else {
+		sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
+	}
 
 	if condition != nil {
 		sb = sb.Where(condition)
@@ -320,6 +334,8 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		case vertexClassAccountability:
 			res, err = scanAccountabilities(rows)
 		case vertexClassMember:
+			res, err = scanMembers(rows)
+		case vertexClassMembersList:
 			res, err = scanMembers(rows)
 		case vertexClassMemberAvatar:
 			res, err = scanAvatars(rows)
@@ -1408,8 +1424,8 @@ func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.Ti
 	sb = sb.Limit(uint64(limit + 1))
 
 	if aggregateType != "" {
-		sb = sb.Where(sq.Or{sq.Eq{"aggregatetype": aggregateType },sq.Eq{"aggregatetype": aggregateType1}})
-	} 
+		sb = sb.Where(sq.Or{sq.Eq{"aggregatetype": aggregateType}, sq.Eq{"aggregatetype": aggregateType1}})
+	}
 	if aggregateID != nil {
 		sb = sb.Where(sq.Eq{"aggregateid": aggregateID})
 	}
@@ -1705,6 +1721,47 @@ func (s *readDBService) Members(ctx context.Context, tl util.TimeLineNumber, sea
 
 	// ask for first + 1 members to know if there're more members
 	members, err := s.members(tl, searchString, first+1, after)
+	if err != nil {
+		return nil, false, err
+	}
+
+	size := len(members)
+	if len(members) > first {
+		size = first
+	}
+	return members[:size], len(members) > first, nil
+}
+
+func (s *readDBService) membersList(tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, error) {
+	var condition sq.Sqlizer
+	if after != nil {
+		condition = sq.Gt{"member.fullname": after}
+	}
+	if searchString != "" {
+		likeCondition := sq.Or{GenericSqlizer(fmt.Sprintf(`lower(member.fullname) LIKE lower('%%%s%%')`, searchString)), GenericSqlizer(fmt.Sprintf(`lower(member.UserName) LIKE lower('%%%s%%')`, searchString))}
+		if condition == nil {
+			condition = likeCondition
+		} else {
+			condition = sq.And{condition, likeCondition}
+		}
+	}
+
+	vs, err := s.vertices(tl, vertexClassMembersList, uint64(first), condition, []string{"member.fullname"})
+	if err != nil {
+		return nil, err
+	}
+	members := vs.([]*models.Member)
+
+	return members, nil
+}
+
+func (s *readDBService) MembersList(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error) {
+	if first == 0 {
+		first = MaxFetchSize
+	}
+
+	// ask for first + 1 members to know if there're more members
+	members, err := s.membersList(tl, searchString, first+1, after)
 	if err != nil {
 		return nil, false, err
 	}

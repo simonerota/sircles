@@ -946,13 +946,13 @@ func (r *RolesTree) HandleCircleSetCoreRoleMemberCommand(tx *db.Tx, command *com
 	}
 
 	/*
-	Uncomment to not allow more than one member for core roles
-	es, err := r.circleUnsetCoreRoleMember(tx, c.RoleType, c.RoleID)
+		Uncomment to not allow more than one member for core roles
+		es, err := r.circleUnsetCoreRoleMember(tx, c.RoleType, c.RoleID)
 
-	if err != nil {
-		return nil, err
-	}
-	events = append(events, es...)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, es...)
 	*/
 
 	events = append(events, ep.NewEventCircleCoreRoleMemberSet(c.RoleID, coreRole.ID, c.MemberID, c.RoleType, c.ElectionExpiration))
