@@ -8,6 +8,7 @@ import Util from '../modules/Util'
 import Avatar from '../components/Avatar'
 
 const defaultFetchSize = 25
+let uuuid
 
 class Members extends React.Component {
   componentWillMount () {
@@ -41,11 +42,10 @@ class Members extends React.Component {
     this.props.history.push('/settings/admin/member/new')
   }
 
-  handleActivateMember = (e, uid) => {
-    console.log(uid)
+  handleActivateMember = () => {
       let updateActivateMemberChange =
         {
-          uid: uid
+          uid: uuuid
         }
 
         console.log('updateActivateMemberChange', updateActivateMemberChange)
@@ -55,11 +55,13 @@ class Members extends React.Component {
     }).catch((error) => {
       console.log('there was an error sending the query', error)
     })
-  
+    location.reload()
     this.closeActivateMember()
   }
 
-  openActivateMember = () => {
+  openActivateMember = (uid) => {
+    console.log("questo e uiddidididi", uid)
+    uuuid = uid
     this.setState({ 'isOpenActivateMember': true })
   }
 
@@ -146,8 +148,8 @@ class Members extends React.Component {
                     <Table.Cell collapsing >
                     {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
                     {/* {m.isDisable && <Icon name='undo' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/aaa`) }} />} */}
-                    {m.isDisable && <Icon name='undo' link onClick={this.openActivateMember} />}
-                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={(e) => this.handleActivateMember(e, m.uid)} />
+                    {m.isDisable && <Icon name='undo' link onClick={() => {this.openActivateMember(m.uid)}} />}
+                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
                     </Table.Cell>
                   </Table.Row>
           ))}
