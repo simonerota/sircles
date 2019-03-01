@@ -122,7 +122,7 @@ class Members extends React.Component {
                   <Table.HeaderCell>UserName</Table.HeaderCell>
                   <Table.HeaderCell>Full Name</Table.HeaderCell>
                   <Table.HeaderCell>Admin</Table.HeaderCell>
-                  <Table.HeaderCell>Disable</Table.HeaderCell>
+                  <Table.HeaderCell>Disabled</Table.HeaderCell>
                   <Table.HeaderCell />
                 </Table.Row>
               </Table.Header>

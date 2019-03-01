@@ -291,7 +291,7 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 	case vertexClassMember:
 		sb = memberSelect
 	case vertexClassMembersList:
-		sb = memberSelect
+		// sb = ""
 	case vertexClassActivate:
 		sb = memberSelect
 	case vertexClassMemberAvatar:
@@ -302,68 +302,88 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		return nil, errors.Errorf("unknown vertex class: %q", vertexClass)
 	}
 
-	// verify if the request is about a member and
-	// check if timestamp is equal to the current timestamp
-	// in this way, timeline events do not use the disable query
-	if vertexClass == vertexClassMembersList {
-		// get all ids of active and disable members
-		disableMembersQuery := "SELECT DISTINCT m1.id FROM member m1, member m2 WHERE (m1.end_tl IS NOT NULL AND m2.end_tl IS NOT NULL) OR (m1.end_tl IS NULL AND m2.end_tl IS NULL)"
-		// add condition to the query
-		sb = sb.Where("member.id IN (" + disableMembersQuery + ")")
-	} else if vertexClass == vertexClassActivate{
-		//sb = sb.Where(s.timeLineCondActivate("member", tl))
-	} else{
-		sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
-	}
-
-	if condition != nil {
-		sb = sb.Where(condition)
-	}
-
-	if limit != 0 {
-		sb = sb.Limit(limit)
-	}
-
-	sb = sb.OrderBy(orderBys...)
-
-	q, args, err := sb.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build query")
-	}
-
 	var res interface{}
-	err = s.tx.Do(func(tx *db.WrappedTx) error {
-		rows, err := tx.Query(q, args...)
+
+	if vertexClass == vertexClassMembersList {
+
+		q := "select id, start_tl, end_tl, isadmin, username, fullname, email FROM member WHERE start_tl in(SELECT max(start_tl) FROM member GROUP BY id)"
+
+
+		err := s.tx.Do(func(tx *db.WrappedTx) error {
+			rows, err := tx.Query(q)
+			if err != nil {
+				return errors.WithMessage(err, "failed to execute query")
+			}
+
+			res, err = scanMembers(rows)
+			return err
+		})
+		return res, err
+			
+		
+		// get all ids of active and disable members
+		//disableMembersQuery := "SELECT DISTINCT m1.id FROM member m1, member m2 WHERE (m1.end_tl IS NOT NULL AND m2.end_tl IS NOT NULL) OR (m1.end_tl IS NULL AND m2.end_tl IS NULL)"
+		// add condition to the query
+		//sb = sb.Where("member.id IN (" + disableMembersQuery + ")")
+
+	} else {
+		
+		if vertexClass != vertexClassActivate{
+			sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
+		}
+		
+
+		if condition != nil {
+			sb = sb.Where(condition)
+		}
+	
+		if limit != 0 {
+			sb = sb.Limit(limit)
+		}
+	
+		sb = sb.OrderBy(orderBys...)
+	
+		q, args, err := sb.ToSql()
 		if err != nil {
-			return errors.WithMessage(err, "failed to execute query")
+			return nil, errors.Wrap(err, "failed to build query")
 		}
+	
+		
+		err = s.tx.Do(func(tx *db.WrappedTx) error {
+			rows, err := tx.Query(q, args...)
+			if err != nil {
+				return errors.WithMessage(err, "failed to execute query")
+			}
+	
+			switch vertexClass {
+			case vertexClassRole:
+				res, err = scanRoles(rows)
+			case vertexClassRoleAdditionalContent:
+				res, err = scanRolesAdditionalContent(rows)
+			case vertexClassDomain:
+				res, err = scanDomains(rows)
+			case vertexClassAccountability:
+				res, err = scanAccountabilities(rows)
+			case vertexClassMember:
+				res, err = scanMembers(rows)
+			case vertexClassMembersList:
+				// res, err = scanMembers(rows)
+			case vertexClassActivate:
+				res, err = scanMembers(rows)
+			case vertexClassMemberAvatar:
+				res, err = scanAvatars(rows)
+			case vertexClassTension:
+				res, err = scanTensions(rows)
+			default:
+				return errors.Errorf("unknown vertex class: %q", vertexClass)
+			}
+			return err
+		})
 
-		switch vertexClass {
-		case vertexClassRole:
-			res, err = scanRoles(rows)
-		case vertexClassRoleAdditionalContent:
-			res, err = scanRolesAdditionalContent(rows)
-		case vertexClassDomain:
-			res, err = scanDomains(rows)
-		case vertexClassAccountability:
-			res, err = scanAccountabilities(rows)
-		case vertexClassMember:
-			res, err = scanMembers(rows)
-		case vertexClassMembersList:
-			res, err = scanMembers(rows)
-		case vertexClassActivate:
-			res, err = scanMembers(rows)
-		case vertexClassMemberAvatar:
-			res, err = scanAvatars(rows)
-		case vertexClassTension:
-			res, err = scanTensions(rows)
-		default:
-			return errors.Errorf("unknown vertex class: %q", vertexClass)
-		}
-		return err
-	})
+		return res, err
 
-	return res, err
+	}
+
 }
 
 func (s *readDBService) connectedVertices(tl util.TimeLineNumber, vertexID []util.ID, ec edgeClass, direction edgeDirection, outputVertexClass vertexClass, condition interface{}, orderBys []string) (interface{}, error) {
