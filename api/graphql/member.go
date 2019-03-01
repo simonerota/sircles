@@ -333,3 +333,36 @@ func (r *updateMemberResultResolverDisable) UpdateMemberChangeErrorsDisable() *u
 type updateMemberChangeErrorsResolverDisable struct {
 	r change.UpdateMemberChangeErrorsDisable
 }
+
+
+type updateActivateMemberResultResolver struct {
+	s          readdb.ReadDBService
+	member     *models.Member
+	res        *change.UpdateActivateMemberResult
+	timeLineID util.TimeLineNumber
+
+	dataLoaders *dataloader.DataLoaders
+}
+
+func (r *updateActivateMemberResultResolver) Member() *memberResolver {
+	if r.member == nil {
+		return nil
+	}
+	return &memberResolver{r.s, r.member, r.timeLineID, r.dataLoaders}
+}
+
+func (r *updateActivateMemberResultResolver) HasErrors() bool {
+	return r.res.HasErrors
+}
+
+func (r *updateActivateMemberResultResolver) GenericError() *string {
+	return errorToStringP(r.res.GenericError)
+}
+
+func (r *updateActivateMemberResultResolver) UpdateActivateMemberChangeErrors() *updateActivateMemberChangeErrorsResolver {
+	return &updateActivateMemberChangeErrorsResolver{r: r.res.UpdateActivateMemberChangeErrors}
+}
+
+type updateActivateMemberChangeErrorsResolver struct {
+	r change.UpdateActivateMemberChangeErrors
+}

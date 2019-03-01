@@ -319,6 +319,12 @@ func (s *SearchEngine) HandlEvent(event *eventstore.StoredEvent) error {
 			return err
 		}
 		reindexMembers = append(reindexMembers, memberID)
+	case ep.EventTypeMemberUpdatedActivate:
+		memberID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return err
+		}
+		reindexMembers = append(reindexMembers, memberID)
 
 	case ep.EventTypeMemberPasswordSet:
 
@@ -327,6 +333,7 @@ func (s *SearchEngine) HandlEvent(event *eventstore.StoredEvent) error {
 	case ep.EventTypeMemberChangeCreateRequested:
 	case ep.EventTypeMemberChangeUpdateRequested:
 	case ep.EventTypeMemberChangeUpdateRequestedDisable:
+	case ep.EventTypeMemberChangeUpdateActivateRequested:
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 	case ep.EventTypeMemberChangeCompleted:
 

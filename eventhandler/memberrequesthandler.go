@@ -132,6 +132,13 @@ func (r *MemberRequestHandler) handleEvent(event *eventstore.StoredEvent) error 
 		}
 		return r.callSaga(memberChangeID, event)
 
+	case ep.EventTypeMemberChangeUpdateActivateRequested:
+		memberChangeID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return err
+		}
+		return r.callSaga(memberChangeID, event)
+
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 		memberChangeID, err := util.IDFromString(event.StreamID)
 		if err != nil {
@@ -156,6 +163,10 @@ func (r *MemberRequestHandler) handleEvent(event *eventstore.StoredEvent) error 
 
 	case ep.EventTypeMemberUpdatedDisable:
 		data := data.(*ep.EventMemberUpdatedDisable)
+		return r.callSaga(data.MemberChangeID, event)
+
+	case ep.EventTypeMemberUpdatedActivate:
+		data := data.(*ep.EventMemberUpdatedActivate)
 		return r.callSaga(data.MemberChangeID, event)
 
 	case ep.EventTypeMemberMatchUIDSet:

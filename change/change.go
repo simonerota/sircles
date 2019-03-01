@@ -189,6 +189,19 @@ type CreateMemberChangeErrors struct {
 	AvatarData error
 }
 
+type UpdateActivateMemberChange struct{
+	ID         util.ID
+}
+
+type UpdateActivateMemberResult struct {
+	HasErrors                bool
+	GenericError             error
+	UpdateActivateMemberChangeErrors UpdateActivateMemberChangeErrors
+}
+
+type UpdateActivateMemberChangeErrors struct {
+}
+
 type UpdateMemberChangeDisable struct{
 	ID         util.ID
 }

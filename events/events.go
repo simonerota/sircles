@@ -109,6 +109,7 @@ const (
 	EventTypeMemberChangeCreateRequested      EventType = "MemberChangeCreateRequested"
 	EventTypeMemberChangeUpdateRequested      EventType = "MemberChangeUpdateRequested"
 	EventTypeMemberChangeUpdateRequestedDisable      EventType = "MemberChangeUpdateRequestedDisable"
+	EventTypeMemberChangeUpdateActivateRequested      EventType = "MemberChangeUpdateActivateRequested"
 	EventTypeMemberChangeSetMatchUIDRequested EventType = "MemberChangeSetMatchUIDRequested"
 	EventTypeMemberChangeCompleted            EventType = "MemberChangeCompleted"
 
@@ -116,6 +117,7 @@ const (
 	EventTypeMemberCreated     EventType = "MemberCreated"
 	EventTypeMemberUpdated     EventType = "MemberUpdated"
 	EventTypeMemberUpdatedDisable     EventType = "MemberUpdatedDisable"
+	EventTypeMemberUpdatedActivate     EventType = "MemberUpdatedActivate"
 	EventTypeMemberDeleted     EventType = "MemberDeleted"
 	EventTypeMemberPasswordSet EventType = "MemberPasswordSet"
 	EventTypeMemberAvatarSet   EventType = "MemberAvatarSet"
@@ -194,6 +196,8 @@ func GetEventDataType(eventType EventType) interface{} {
 		return &EventMemberChangeUpdateRequested{}
 	case EventTypeMemberChangeUpdateRequestedDisable:
 		return &EventMemberChangeUpdateRequestedDisable{}
+	case EventTypeMemberChangeUpdateActivateRequested:
+		return &EventMemberChangeUpdateActivateRequested{}
 	case EventTypeMemberChangeSetMatchUIDRequested:
 		return &EventMemberChangeSetMatchUIDRequested{}
 	case EventTypeMemberChangeCompleted:
@@ -205,6 +209,8 @@ func GetEventDataType(eventType EventType) interface{} {
 		return &EventMemberUpdated{}
 	case EventTypeMemberUpdatedDisable:
 		return &EventMemberUpdatedDisable{}
+	case EventTypeMemberUpdatedActivate:
+		return &EventMemberUpdatedActivate{}
 	case EventTypeMemberPasswordSet:
 		return &EventMemberPasswordSet{}
 	case EventTypeMemberAvatarSet:
@@ -744,6 +750,20 @@ func (e *EventMemberChangeUpdateRequestedDisable) EventType() EventType {
 	return EventTypeMemberChangeUpdateRequestedDisable
 }
 
+type EventMemberChangeUpdateActivateRequested struct {
+	MemberID util.ID
+}
+
+func NewEventMemberChangeUpdateActivateRequested(memberChangeID util.ID, member *models.Member) *EventMemberChangeUpdateActivateRequested {
+	return &EventMemberChangeUpdateActivateRequested{
+		MemberID:     member.ID,
+	}
+}
+
+func (e *EventMemberChangeUpdateActivateRequested) EventType() EventType {
+	return EventTypeMemberChangeUpdateActivateRequested
+}
+
 type EventMemberChangeSetMatchUIDRequested struct {
 	MemberID util.ID
 	MatchUID string
@@ -839,6 +859,20 @@ func NewEventMemberUpdatedDisable(member *models.Member, memberChangeID util.ID)
 
 func (e *EventMemberUpdatedDisable) EventType() EventType {
 	return EventTypeMemberUpdatedDisable
+}
+
+type EventMemberUpdatedActivate struct {
+	MemberChangeID util.ID
+}
+
+func NewEventMemberUpdatedActivate(member *models.Member, memberChangeID util.ID) *EventMemberUpdatedActivate {
+	return &EventMemberUpdatedActivate{
+		MemberChangeID: memberChangeID,
+	}
+}
+
+func (e *EventMemberUpdatedActivate) EventType() EventType {
+	return EventTypeMemberUpdatedActivate
 }
 
 type EventMemberPasswordSet struct {

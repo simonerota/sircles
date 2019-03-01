@@ -41,7 +41,21 @@ class Members extends React.Component {
     this.props.history.push('/settings/admin/member/new')
   }
 
-  handleActivateMember = () => {
+  handleActivateMember = (e, uid) => {
+    console.log(uid)
+      let updateActivateMemberChange =
+        {
+          uid: uid
+        }
+
+        console.log('updateActivateMemberChange', updateActivateMemberChange)
+      this.props.updateActivateMember(updateActivateMemberChange)
+    .then(({ data }) => {
+      console.log("sending query ActivateMember")
+    }).catch((error) => {
+      console.log('there was an error sending the query', error)
+    })
+  
     this.closeActivateMember()
   }
 
@@ -131,8 +145,9 @@ class Members extends React.Component {
                     </Table.Cell>
                     <Table.Cell collapsing >
                     {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
+                    {/* {m.isDisable && <Icon name='undo' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/aaa`) }} />} */}
                     {m.isDisable && <Icon name='undo' link onClick={this.openActivateMember} />}
-                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
+                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={(e) => this.handleActivateMember(e, m.uid)} />
                     </Table.Cell>
                   </Table.Row>
           ))}
@@ -187,6 +202,18 @@ const MoreMembersQuery = gql`
       }
 `
 
+const updateActivateMember = gql`
+  mutation updateActivateMember($updateActivateMemberChange: UpdateActivateMemberChange!) {
+    updateActivateMember(updateActivateMemberChange: $updateActivateMemberChange) {
+      hasErrors
+      genericError
+      member {
+        uid
+      }
+    }
+  }
+`
+
 const ViewerQuery = gql`
   query viewerQuery {
     viewer {
@@ -198,6 +225,12 @@ const ViewerQuery = gql`
   }
 `
 export default compose(
+  graphql(updateActivateMember, {
+    name: 'updateActivateMember',
+    props: ({ updateActivateMember }) => ({
+      updateActivateMember: (updateActivateMemberChange) => updateActivateMember({ variables: { updateActivateMemberChange }, refetchQueries: ['memberQuery'] })
+    })
+  }),
 graphql(ViewerQuery, {
   name: 'viewerQuery',
   options: () => ({

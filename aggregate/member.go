@@ -84,6 +84,8 @@ func (m *Member) HandleCommand(command *commands.Command) ([]ep.Event, error) {
 		events, err = m.HandleUpdateMemberCommand(command)
 	case commands.CommandTypeUpdateMemberDisable:
 		events, err = m.HandleUpdateMemberCommandDisable(command)
+	case commands.CommandTypeUpdateActivateMember:
+		events, err = m.HandleUpdateActivateMemberCommand(command)
 	case commands.CommandTypeSetMemberPassword:
 		events, err = m.HandleSetMemberPasswordCommand(command)
 	case commands.CommandTypeSetMemberMatchUID:
@@ -169,6 +171,29 @@ func (m *Member) HandleUpdateMemberCommand(command *commands.Command) ([]ep.Even
 	if c.Avatar != nil {
 		events = append(events, ep.NewEventMemberAvatarSet(m.id, c.Avatar))
 	}
+
+	return events, nil
+}
+
+func (m *Member) HandleUpdateActivateMemberCommand(command *commands.Command) ([]ep.Event, error) {
+	events := []ep.Event{}
+
+	c := command.Data.(*commands.UpdateActivateMember)
+
+	if _, ok := m.updateRequests[c.MemberChangeID]; ok {
+		return nil, nil
+	}
+
+	// if not created return an error
+	if !m.created {
+		return nil, fmt.Errorf("unexistent member")
+	}
+
+	member := &models.Member{
+	}
+	member.ID = m.id
+
+	events = append(events, ep.NewEventMemberUpdatedActivate(member, c.MemberChangeID))
 
 	return events, nil
 }
@@ -264,6 +289,11 @@ func (m *Member) ApplyEvent(event *eventstore.StoredEvent) error {
 
 	case ep.EventTypeMemberUpdatedDisable:
 		data := data.(*ep.EventMemberUpdatedDisable)
+
+		m.updateRequests[data.MemberChangeID] = struct{}{}
+
+	case ep.EventTypeMemberUpdatedActivate:
+		data := data.(*ep.EventMemberUpdatedActivate)
 
 		m.updateRequests[data.MemberChangeID] = struct{}{}
 
