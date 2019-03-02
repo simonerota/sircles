@@ -138,10 +138,10 @@ class Members extends React.Component {
                     <Table.Cell>
                       {m.fullName}
                     </Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell style={{paddingLeft: '20' + 'px'}}>
                       {m.isAdmin && <Icon color='green' name='checkmark' />}
                     </Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell style={{paddingLeft: '30' + 'px'}}>
                       {m.isDisable && <Icon color='red' name='x icon' />}
                     </Table.Cell>
                     <Table.Cell collapsing >
