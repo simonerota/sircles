@@ -152,7 +152,7 @@ class Members extends React.Component {
                     }/>
                     <Popup content='Activate member' trigger={
                       <span>
-                        {m.isDisable && <Icon name='lock open' link onClick={() => {this.openActivateMember(m.uid)}} />}
+                        {m.isDisable && <Icon name='unlock alternate' link onClick={() => {this.openActivateMember(m.uid)}} />}
                       </span>
                     }/>
                     <Confirm content='Are you sure you want to activate this member?' open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
