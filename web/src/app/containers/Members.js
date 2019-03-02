@@ -1,7 +1,7 @@
 import React from 'react'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon, Confirm } from 'semantic-ui-react'
+import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon, Confirm, Popup } from 'semantic-ui-react'
 
 import { withError } from '../modules/Error'
 import Util from '../modules/Util'
@@ -145,10 +145,17 @@ class Members extends React.Component {
                       {m.isDisable && <Icon color='red' name='x icon' />}
                     </Table.Cell>
                     <Table.Cell collapsing >
-                    {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
-                    {/* {m.isDisable && <Icon name='undo' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/aaa`) }} />} */}
-                    {m.isDisable && <Icon name='undo' link onClick={() => {this.openActivateMember(m.uid)}} />}
-                    <Confirm open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
+                    <Popup content='Edit member' trigger={
+                      <span>
+                        {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
+                      </span>
+                    }/>
+                    <Popup content='Activate member' trigger={
+                      <span>
+                        {m.isDisable && <Icon name='lock open' link onClick={() => {this.openActivateMember(m.uid)}} />}
+                      </span>
+                    }/>
+                    <Confirm content='Are you sure you want to activate this member?' open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
                     </Table.Cell>
                   </Table.Row>
           ))}

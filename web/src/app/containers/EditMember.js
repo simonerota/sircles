@@ -514,7 +514,7 @@ class EditMember extends React.Component {
               }
             </div>
             { viewer.member.isAdmin && type === 'edit' && mode === 'member' && 
-              <Confirm open={this.state.isOpenDisableMember} onCancel={this.closeDisableMember} onConfirm={this.handleSubmitDisable} />
+              <Confirm content='Are you sure you want to disable this member?' open={this.state.isOpenDisableMember} onCancel={this.closeDisableMember} onConfirm={this.handleSubmitDisable} />
             }
             <div style={{clear: 'both'}} />
           </Form>
