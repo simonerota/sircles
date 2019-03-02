@@ -97,11 +97,15 @@ class UserMenu extends React.Component {
     // sort parents by depth
     const parentOrderedKeys = Object.keys(parents).sort((a, b) => (parents[a].depth - parents[b].depth))
     
-    // get the core circles of the current user
+    // get core circles of the current user
+    // and lead links
     let coreCircleUid = 0;
+    let sircleLeaderUid = 0;
     for(let i = 0; i < member.roles.length; i++) {
       if(member.roles[i].role.name == "Core Members")
         coreCircleUid = member.roles[i].role.parent.uid
+      if(member.roles[i].role.name == "Sircle Leader")
+        sircleLeaderUid = member.roles[i].role.parent.uid
     }
     
     return (
@@ -112,7 +116,9 @@ class UserMenu extends React.Component {
           <Dropdown.Menu>
             { member.circles.map(circle => (
               <Dropdown.Item key={circle.role.uid} as={Link} to={Util.roleUrl(circle.role.uid, timeLine)}>
-                {circle.role.name} { circle.role.uid == coreCircleUid && <Icon inverted color='orange' name='selected radio'></Icon>}
+                {circle.role.name}
+                &nbsp;{ circle.role.uid == coreCircleUid && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                &nbsp;{ circle.role.uid == sircleLeaderUid && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>
@@ -138,7 +144,9 @@ class UserMenu extends React.Component {
               return (
                 [
                   <Dropdown.Header key={parent.uid}>
-                    {parent.name} { parent.uid == coreCircleUid && <Icon inverted color='orange' name='selected radio'></Icon> }
+                    {parent.name}
+                    &nbsp;{ parent.uid == coreCircleUid && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon> }
+                    &nbsp;{ parent.uid == sircleLeaderUid && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon> }                
                   </Dropdown.Header>,
                   [...items]
                 ]
