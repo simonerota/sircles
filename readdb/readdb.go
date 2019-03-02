@@ -202,15 +202,6 @@ func (s *readDBService) timeLineCond(table string, tl util.TimeLineNumber) sq.Sq
 	return sq.And{sq.LtOrEq{table + ".start_tl": tl}, sq.Or{sq.GtOrEq{table + ".end_tl": tl}, sq.Eq{table + ".end_tl": nil}}}
 }
 
-// func (s *readDBService) timeLineCondActivate(table string, tl util.TimeLineNumber) sq.Sqlizer {
-// 	// if tl == s.curTl.Number() {
-// 	// 	return sq.Eq{table + ".end_tl": nil}
-// 	// }
-// 	//LtOrEq === start_tl <= tl
-// 	//GtOrEq === endt_tl >= tl
-// 	return sq.And{sq.LtOrEq{table + ".start_tl": tl}, sq.Or{sq.GtOrEq{table + ".end_tl": tl}}}
-// }
-
 func (s *readDBService) lastTimeLineCond(table string, tl util.TimeLineNumber) sq.Sqlizer {
 	if tl == s.curTl.Number() {
 		return sq.Eq{table + ".end_tl": nil}
@@ -319,12 +310,6 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 			return err
 		})
 		return res, err
-			
-		
-		// get all ids of active and disable members
-		//disableMembersQuery := "SELECT DISTINCT m1.id FROM member m1, member m2 WHERE (m1.end_tl IS NOT NULL AND m2.end_tl IS NOT NULL) OR (m1.end_tl IS NULL AND m2.end_tl IS NULL)"
-		// add condition to the query
-		//sb = sb.Where("member.id IN (" + disableMembersQuery + ")")
 
 	} else {
 		
@@ -677,9 +662,7 @@ func (s *readDBService) insertVertex(tl util.TimeLineNumber, vc vertexClass, id 
 
 //to activate a disabled user
 func (s *readDBService) activateVertex(tl util.TimeLineNumber, vc vertexClass, id util.ID) error {
-	fmt.Println("ciao")
 	return s.insertMemberActivate(tl, id)
-	
 }
 
 // closeVertex closes a vertex setting its end timeline to endtl (should always
@@ -1312,16 +1295,10 @@ type active struct{
 func (s *readDBService) insertMemberActivate(tl util.TimeLineNumber, id util.ID) error {
 	var member active
 
-	// sb := memberSelect
-	// cond := fmt.Sprintf("member.id = '%s'", id)
-	// sb = sb.Where(cond)
-	// q, args, err := sb.ToSql()
-	// fmt.Println(q, args, err)
 	query := fmt.Sprintf("SELECT member.isadmin, member.username, member.fullname, member.email FROM member WHERE member.id = '%s'", id)
 
 	err := s.tx.Do(func(tx *db.WrappedTx) error {
 		rows, err := tx.Query(query)
-		fmt.Println(rows)
 		if err != nil {
 			return errors.WithMessage(err, "failed to execute query")
 		}
@@ -1331,18 +1308,6 @@ func (s *readDBService) insertMemberActivate(tl util.TimeLineNumber, id util.ID)
 		}
 		return err
 	})
-
-	// var member active
-	// member.id, member.start_tl, member.end_tl, member.isadmin, member.username, member.fullname, member.email
-	// fmt.Println("ue")
-	// err := s.tx.Do(func(tx *db.WrappedTx) error {
-	// 	qu := fmt.Sprintf("select isadmin, username, fullname, email from member WHERE id= %s" ,id)
-	// 	return tx.QueryRow(qu).Scan(&member.isAdmin, &member.userName, &member.fullName, &member.email)
-	// })
-	// if err == sql.ErrNoRows {
-	// 	return nil
-	// }
-	fmt.Println(id, tl, nil, member.isAdmin, member.userName, member.fullName, member.email)
 
 	q, args, err := memberInsert.Values(id, tl, nil, member.isAdmin, member.userName, member.fullName, member.email).ToSql()
 	if err != nil {
@@ -1704,8 +1669,6 @@ func (s *readDBService) Member(ctx context.Context, tl util.TimeLineNumber, memb
 
 func (s *readDBService) MemberActivate(ctx context.Context, tl util.TimeLineNumber, memberID util.ID) (*models.Member, error) {
 	vs, err := s.vertices(tl, vertexClassActivate, 0, sq.Eq{"member.id": memberID}, nil)
-	fmt.Println("-------------------")
-	fmt.Println(err)
 	if err != nil {
 		return nil, err
 	}
@@ -3058,11 +3021,7 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 			return err
 		}
 
-		// disable a member by adding end_tl to his last record
-		// if err := s.deleteVertex(tl.Number()-1, vertexClassMember, memberID); err != nil {
-		// 	return err
-		// }
-		fmt.Println("qua")
+		// activate member by adding new record with the same id, name, email... but with current timeline.
 		if err := s.activateVertex(tl.Number(), vertexClassMember, memberID); err != nil {
 			return err
 		}

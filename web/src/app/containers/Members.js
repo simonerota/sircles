@@ -60,7 +60,6 @@ class Members extends React.Component {
   }
 
   openActivateMember = (uid) => {
-    console.log("questo e uiddidididi", uid)
     uuuid = uid
     this.setState({ 'isOpenActivateMember': true })
   }
