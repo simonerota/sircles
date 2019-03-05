@@ -2,7 +2,7 @@ import React, { PropTypes } from 'react'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
 import { Link } from 'react-router-dom'
-import { Container, Header, Segment, Form, Button, Grid, Menu, Card, List, Table, Popup, Icon, Dropdown, Label, TextArea } from 'semantic-ui-react'
+import { Container, Header, Segment, Form, Button, Grid, Menu, Card, List, Table, Popup, Icon, Dropdown, Label, TextArea, Accordion } from 'semantic-ui-react'
 import moment from 'moment'
 import marked from 'marked'
 
@@ -126,7 +126,14 @@ class Circle extends React.Component {
       case 'leadlink': return 1
       case 'replink': return 2
       case 'facilitator': return 3
+      case 'engager': return 5
+      case 'champion': return 6
+      case 'scout': return 7
+      case 'magister': return 8
+      case 'mangler': return 9
       case 'secretary': return 4
+      case 'securityenabler': return 10
+      case 'reporter': return 11
       default: return 0
     }
   }
@@ -144,6 +151,25 @@ class Circle extends React.Component {
     let tab = null
 
     if (activeItem === 'members') {
+
+      // Sorint: custom core member ids. A custom core member fills a role named 'Core Members'
+      let sorintCoreMemberIds = []
+      let sorintLeadLinkMemberIds = []
+      for (let i = 0; i < role.roles.length; i++) {
+        const coreRole = role.roles[i]
+        if (coreRole.name === 'Core Members') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintCoreMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+        // create sircle leader array ids
+        if (coreRole.name === 'Sircle Leader') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintLeadLinkMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+      }
+
       let coreMembersData = []
       for (let i = 0; i < role.circleMembers.length; i++) {
         const circleMember = role.circleMembers[i]
@@ -156,9 +182,14 @@ class Circle extends React.Component {
 
         const reason = reasons.join(', ')
 
+        const isCustomCore = (sorintCoreMemberIds.indexOf(circleMember.member.uid) >= 0)
+        const isCustomLeadLink = (sorintLeadLinkMemberIds.indexOf(circleMember.member.uid) >= 0)
+
         coreMembersData.push({
           member: circleMember.member,
-          reason: reason
+          reason: reason,
+          customCore: isCustomCore,
+          customLeadLink: isCustomLeadLink
         })
       }
 
@@ -171,10 +202,10 @@ class Circle extends React.Component {
           member: circleMember.member
         })
       }
-
+      
       tab =
         <div>
-          <Header as='h3' block>Core Members</Header>
+          <Header as='h3' block>Members and Core Members</Header>
           <Card.Group>
             {coreMembersData.map(d => (
               <Card key={d.member.uid}>
@@ -182,7 +213,13 @@ class Circle extends React.Component {
                   <Avatar uid={d.member.uid} size={50} floated='right' inline spaced shape='rounded' />
                   <Card.Header>
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
-                      {d.member.userName}
+                    <Popup content={d.member.userName} trigger={
+                      <span>
+                        {d.member.fullName}
+                        &nbsp;{d.customCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                        &nbsp;{d.customLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                      </span>
+                    } />
                     </Link>
                   </Card.Header>
                 </Card.Content>
@@ -204,7 +241,13 @@ class Circle extends React.Component {
                   <Avatar uid={d.member.uid} size={50} floated='right' inline spaced shape='rounded' />
                   <Card.Header>
                     <Link to={Util.memberUrl(d.member.uid, timeLine)}>
-                      {d.member.userName}
+                      <Popup content={d.member.userName} trigger={
+                        <span>
+                          {d.member.fullName}
+                          &nbsp;{d.customCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                          &nbsp;{d.customLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                        </span>
+                      } />
                     </Link>
                   </Card.Header>
                 </Card.Content>
@@ -218,16 +261,41 @@ class Circle extends React.Component {
     if (activeItem === 'roles') {
       let coreRoles = []
       let roles = []
+
+      // Sorint: custom core member ids. A custom core member fills a role named 'Core Members'
+      let sorintCoreMemberIds = []
+      let sorintLeadLinkMemberIds = []
+      for (let i = 0; i < role.roles.length; i++) {
+        const coreRole = role.roles[i]
+        if (coreRole.name === 'Core Members') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintCoreMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+        // create sircle leader array ids
+        if (coreRole.name === 'Sircle Leader') {
+          for (let i = 0; i < coreRole.roleMembers.length; i++) {
+            sorintLeadLinkMemberIds.push(coreRole.roleMembers[i].member.uid)
+          }
+        }
+      }
+
       for (let i = 0; i < role.roles.length; i++) {
         const r = role.roles[i]
         const roleType = r.roleType
 
         if (roleType === 'normal' || roleType === 'circle') roles.push(r)
 
+        // We hide these standard core roles: replink, facilitator, secretary
+
         if (roleType === 'leadlink' ||
-          roleType === 'replink' ||
-          roleType === 'facilitator' ||
-          roleType === 'secretary') coreRoles.push(r)
+          roleType === 'engager' ||
+          roleType === 'scout' ||
+          roleType === 'champion' ||
+          roleType === 'mangler' ||
+          roleType === 'magister'||
+          roleType === 'securityenabler'||
+          roleType === 'reporter') coreRoles.push(r)
       }
 
       coreRoles.sort((a, b) => {
@@ -239,26 +307,40 @@ class Circle extends React.Component {
         const r = coreRoles[i]
         const roleType = r.roleType
 
-        let roleMember
         let expireInfo = "doesn't expire"
-        let filler = ''
-        if (r.roleMembers.length > 0) {
-          roleMember = r.roleMembers[0]
-        }
+        let fillers = []
 
-        if (roleMember) {
-          let member = r.roleMembers[0].member
-          const memberLink = Util.memberUrl(member.uid, timeLine)
-          filler =
-            <Link to={memberLink}>
-              <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
-              {member.userName}
-            </Link>
-          if (moment.utc(roleMember.electionExpiration).isValid()) {
-            expireInfo = 'expires on ' + moment.utc(roleMember.electionExpiration).format('L')
+        if (r.roleMembers.length === 0) {
+          fillers.push('not filled')
+        }
+        else
+        {
+          // show more the one member for core role
+          for (let i = 0, len = r.roleMembers.length; i < len; i++) {
+            let member = r.roleMembers[i].member
+            const memberLink = Util.memberUrl(member.uid, timeLine)
+            const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0)
+            const isCustomLeadLink = (sorintLeadLinkMemberIds.indexOf(member.uid) >= 0)
+            fillers.push(
+              <List.Item key={member.uid}>
+                <Link to={memberLink}>
+                  <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
+                  <Popup content={member.userName} trigger={
+                    <span>
+                      {member.fullName}
+                      {isCustomCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                      {isCustomLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                    </span>
+                  } />
+                </Link>
+              </List.Item>
+            )
           }
-        } else {
-          filler = 'not filled'
+          
+          // show expiration date
+          if (moment.utc(r.roleMembers[0].electionExpiration).isValid()) {
+            expireInfo = 'expires on ' + moment.utc(r.roleMembers[0].electionExpiration).format('L')
+          }
         }
 
         const roleLink = Util.roleUrl(r.uid, timeLine)
@@ -267,18 +349,18 @@ class Circle extends React.Component {
           <Card key={r.uid}>
             <Card.Content style={{'flexGrow': 0}}>
               { roleType === 'leadlink' && canEdit && viewerPermissions.assignRootCircleLeadLink &&
-              <Popup className='ui' content='Manage Lead Link' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setSetCoreRoleMember(r.uid, roleType) }} />
-                </span>
-              } />
+                <Popup className='ui' content='Manage Sircle Leader' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setSetCoreRoleMember(r.uid, roleType) }} />
+                  </span>
+                } />
               }
               { roleType !== 'leadlink' && canEdit && viewerPermissions.assignCircleCoreRoles &&
-              <Popup className='ui' content='Manage Core Role' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setSetCoreRoleMember(r.uid, roleType) }} />
-                </span>
-              } />
+                <Popup className='ui' content='Manage Core Role' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setSetCoreRoleMember(r.uid, roleType) }} />
+                  </span>
+                } />
               }
               <Card.Header>
                 <Link to={roleLink}>
@@ -288,10 +370,12 @@ class Circle extends React.Component {
             </Card.Content>
             <Card.Content>
               <Card.Description>
-                {filler}
+                <List>
+                  {fillers}
+                </List>
               </Card.Description>
             </Card.Content>
-            { roleType !== 'leadlink' && roleMember &&
+            { roleType !== 'leadlink' && r.roleMembers[0] &&
               <Card.Content extra>
                 {expireInfo}
               </Card.Content>
@@ -310,6 +394,7 @@ class Circle extends React.Component {
         const roleType = r.roleType
 
         let fillers = []
+        let extras = []
         if (roleType === 'normal') {
           for (let i = 0, len = r.roleMembers.length; i < len; i++) {
             // Only display max 3 fillers
@@ -321,23 +406,68 @@ class Circle extends React.Component {
             if (focus) {
               focusString = ` (${focus})`
             }
+
             const memberLink = Util.memberUrl(member.uid, timeLine)
-            fillers.push(
+            const isCustomCore = (sorintCoreMemberIds.indexOf(member.uid) >= 0)
+            const isCustomLeadLink = (sorintLeadLinkMemberIds.indexOf(member.uid) >= 0)
+            extras.push(
               <List.Item key={member.uid}>
                 <Link to={memberLink}>
                   <Avatar uid={member.uid} size={30} inline spaced shape='rounded' />
-                  {member.userName}
+                  <Popup content={member.userName} trigger={
+                    <span>
+                      {member.fullName}             
+                      &nbsp;{isCustomCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                      &nbsp;{isCustomLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                    </span>
+                  } />
                 </Link>
                 {focusString}
               </List.Item>)
           }
-          if (fillers.length === 0) {
-            /* TODO(sgotti) limit showed fillers when exceeding a choosed number and show a "more" button */
+          if (extras.length === 0) {
             fillers.push(<div key='none'>no members assigned to role</div>)
+          } else {
+            fillers.push(<List>{extras}</List>)
           }
-          if (r.roleMembers.length > 3) {
+          if (r.roleMembers.length > 3) { // Other members accordion
+            extras = []
             const moreFillersCount = r.roleMembers.length - 3
-            fillers.push(<div key='more'>... {moreFillersCount} other {moreFillersCount > 1 ? 'members' : 'member' }</div>)
+            for (let i = 3, len = r.roleMembers.length; i < len; i++) {
+              let focus = r.roleMembers[i].focus
+              let focusString = ''
+              if (focus) {
+                focusString = ` (${focus})`
+              }
+              let extramember = r.roleMembers[i].member
+              const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0)
+              const isCustomLeadLink = (sorintLeadLinkMemberIds.indexOf(extramember.uid) >= 0)
+              const extramemberLink = Util.memberUrl(extramember.uid, timeLine)
+              extras.push(
+                <List.Item key={extramember.uid}>
+                  <Link to={extramemberLink}>
+                    <Avatar uid={extramember.uid} size={30} inline spaced shape='rounded' />
+                    <Popup content={extramember.userName} trigger={
+                      <span>
+                        {extramember.fullName}
+                        &nbsp;{isCustomCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                        &nbsp;{isCustomLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                      </span>
+                    } />
+                  </Link>
+                  {focusString}
+                </List.Item>)
+            }
+            fillers.push(
+              <Accordion>
+                <Accordion.Title><Icon name='dropdown' />{moreFillersCount} other {moreFillersCount > 1 ? 'members' : 'member' }</Accordion.Title>
+                <Accordion.Content>
+                  <List>
+                    {extras}
+                  </List>
+                </Accordion.Content>
+              </Accordion>
+            )
           }
         }
 
@@ -354,16 +484,24 @@ class Circle extends React.Component {
           // get leadlink assigned member (there can be only one)
           if (leadlink.roleMembers.length > 0) {
             let leadlinkMember = leadlink.roleMembers[0].member
-
+            let extramember = leadlink.roleMembers
             const memberLink = Util.memberUrl(leadlinkMember.uid, timeLine)
+            const isCustomCore = (sorintCoreMemberIds.indexOf(extramember.uid) >= 0)
+            const isCustomLeadLink = (sorintLeadLinkMemberIds.indexOf(extramember.uid) >= 0)
+
             fillers.push(
-              <List.Item key={leadlinkMember.uid}>
-                <Link to={memberLink}>
-                  <Avatar uid={leadlinkMember.uid} size={30} inline spaced shape='rounded' />
-                  {leadlinkMember.userName}
-                </Link>
-                <span> (Lead Link)</span>
-              </List.Item>)
+              <List>
+                <List.Item key={leadlinkMember.uid}>
+                  <Link to={memberLink}>
+                    <Avatar uid={leadlinkMember.uid} size={30} inline spaced shape='rounded' />
+                    {leadlinkMember.fullName}
+                    &nbsp;{isCustomCore && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                    &nbsp;{isCustomLeadLink && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                 </Link>
+                  <span> (Sircle Leader)</span>
+                </List.Item>
+              </List>
+            )
           } else {
             fillers.push(<div key='none'>no leadlink assigned</div>)
           }
@@ -374,52 +512,54 @@ class Circle extends React.Component {
         let cardColor = 'teal'
         if (r.roleType === 'circle') cardColor = 'blue'
 
-        rolesRows.push(
+        if (r.name !== 'Core Members' ||  viewerPermissions.assignChildRoleMembers) { // Sorint: hide 'Core Members' Role
+          rolesRows.push(
           <Card key={r.uid} color={cardColor}>
             <Card.Content style={{'flexGrow': 0}}>
               {r.roleType === 'normal' && canEdit && viewerPermissions.assignChildRoleMembers &&
-              <Popup content='Add/Edit role assignments' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setRoleSetMember(r.uid) }} />
-                </span>
-              } />
-          }
+                <Popup content='Add/Edit role assignments' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setRoleSetMember(r.uid) }} />
+                  </span>
+                } />
+              }
               {r.roleType === 'circle' && canEdit && viewerPermissions.assignChildCircleLeadLink &&
-              <Popup content='Set circle Lead Link' trigger={
-                <span className='ui right floated'>
-                  <Icon name='user add' link onClick={() => { this.setRoleSetLeadLink(r.uid, leadlink.uid) }} />
-                </span>
-              } />
-            }
+                <Popup content='Set Sircle Leader' trigger={
+                  <span className='ui right floated'>
+                    <Icon name='user add' link onClick={() => { this.setRoleSetLeadLink(r.uid, leadlink.uid) }} />
+                  </span>
+                } />
+              }
               <Card.Header>
                 <Link to={roleLink}>
                   {r.name}
+                  &nbsp;{r.name === 'Core Members' && <Icon inverted color='orange' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
+                  &nbsp;{r.name === 'Sircle Leader' && <Icon inverted color='blue' name='selected radio' style={{marginRight: 0 + 'px'}}></Icon>}
                 </Link>
                 {r.roleType === 'circle' && <Label className='labelright' color='blue' horizontal basic size='tiny'>Circle</Label> }
               </Card.Header>
-            </Card.Content>
-            <Card.Content>
-              <Card.Description>
-                <List>
+              </Card.Content>
+              <Card.Content>
+                <Card.Description>
                   {fillers}
-                </List>
-              </Card.Description>
-            </Card.Content>
-          </Card>
-        )
+                </Card.Description>
+              </Card.Content>
+            </Card>
+          )
+        }
       }
 
       tab =
-        <div>
-          <Header as='h3' block>Core Roles</Header>
-          <Card.Group>
-            {coreRolesRows}
-          </Card.Group>
-          <Header as='h3' block>Roles</Header>
-          <Card.Group>
-            {rolesRows}
-          </Card.Group>
-        </div>
+      <div>
+        <Header as='h3' block>Core Roles</Header>
+        <Card.Group>
+          {coreRolesRows}
+        </Card.Group>
+        <Header as='h3' block>Roles</Header>
+        <Card.Group>
+          {rolesRows}
+        </Card.Group>
+      </div>
     }
 
     if (activeItem === 'tensions') {
@@ -441,7 +581,11 @@ class Circle extends React.Component {
                       <Table.Cell>
                         <Link to={Util.memberUrl(t.member.uid, timeLine)}>
                           <Avatar uid={t.member.uid} size={30} inline spaced shape='rounded' />
-                          {t.member.userName}
+                          <Popup content={t.member.userName} trigger={
+                            <span>
+                              {t.member.fullName}
+                            </span>
+                          } />
                         </Link>
                       </Table.Cell>
                       <Table.Cell>
@@ -467,6 +611,16 @@ class Circle extends React.Component {
         deletableRoles.push(r)
       }
 
+      // We hide these standard core roles: replink, facilitator, secretary
+      let editableRoles = []
+      for (let i = 0; i < role.roles.length; i++) {
+        const r = role.roles[i]
+        const roleType = r.roleType
+        if (roleType === 'facilitator' || roleType === 'replink' || roleType == 'secretary') continue
+        editableRoles.push(r)
+      }
+
+
       tab =
         <Segment>
           <Grid stackable columns={3}>
@@ -480,7 +634,7 @@ class Circle extends React.Component {
                   <Dropdown.Menu>
                     {/* <i class="add user icon"></i> */}
                     <Dropdown.Menu scrolling >
-                      {role.roles.map((role) => <Dropdown.Item key={role.uid} text={role.name} onClick={() => { this.setChildRoleUpdate(role) }} />)}
+                      {editableRoles.map((role) => <Dropdown.Item key={role.uid} text={role.name} onClick={() => { this.setChildRoleUpdate(role) }} />)}
                     </Dropdown.Menu>
                   </Dropdown.Menu>
                 </Dropdown>
@@ -599,7 +753,11 @@ class Circle extends React.Component {
                     <Table.Cell>
                       <Link to={Util.memberUrl(e.issuer.uid, timeLine)}>
                         <Avatar uid={e.issuer.uid} size={30} inline spaced shape='rounded' />
-                        {e.issuer.userName}
+                        <Popup content={e.issuer.userName} trigger={
+                          <span>
+                            {e.issuer.fullName}
+                          </span>
+                        } />
                       </Link>
                       {' did some changes'}
                     </Table.Cell>

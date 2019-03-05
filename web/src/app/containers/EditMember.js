@@ -2,7 +2,7 @@ import React, { PropTypes } from 'react'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
 import { withRouter } from 'react-router-dom'
-import { Button, Image, Message, Label, Form, Input, Checkbox, Modal, Dimmer, Loader } from 'semantic-ui-react'
+import { Button, Image, Message, Label, Form, Input, Checkbox, Modal, Dimmer, Loader, Confirm } from 'semantic-ui-react'
 import ReactCrop from 'react-image-crop'
 
 import { withError } from '../modules/Error'
@@ -18,6 +18,7 @@ class EditMember extends React.Component {
       curMember = { uid: '' }
       this.setState({ curMember: curMember })
     }
+
   }
 
   componentWillReceiveProps (nextProps) {
@@ -74,7 +75,10 @@ class EditMember extends React.Component {
       passwordError: null,
       avatarError: null,
       profileCreated: false,
-      profileUpdated: false })
+      profileUpdated: false,
+      profileDisabled: false,
+      isOpenDisableMember: false,
+      profileDisabled: false })
   }
 
   cloneMember = (member) => {
@@ -242,6 +246,44 @@ class EditMember extends React.Component {
     }
   }
 
+  openDisableMember = () => {
+    this.setState({ 'isOpenDisableMember': true })
+  }
+
+  closeDisableMember = () => {
+    this.setState({ 'isOpenDisableMember': false })
+  }
+
+  handleSubmitDisable = (e) => {
+    e.preventDefault()
+    const { curMember, file, cropData } = this.state
+
+      let updateMemberChangeDisable =
+      {
+        uid: curMember.uid
+      }
+
+      console.log('updateMemberChangeDisable', updateMemberChangeDisable)
+
+      this.setState({submitting: true})
+      this.props.updateMemberDisable(updateMemberChangeDisable)
+    .then(({ data }) => {
+      this.setState({submitting: false})
+      console.log('got data', data)
+      if (data.updateMemberDisable.hasErrors) {
+        if (data.updateMemberDisable.genericError) {
+          this.setState({showError: true, errorMessage: data.updateMemberDisable.genericError})
+        }
+      } else {
+        this.setState({profileDisabled: true})
+      }
+    }).catch((error) => {
+      this.setState({submitting: false})
+      console.log('there was an error sending the query', error)
+    })
+    this.closeDisableMember()
+  }
+
   handleImageChange = (e) => {
     e.preventDefault()
 
@@ -355,7 +397,7 @@ class EditMember extends React.Component {
 
     const viewer = viewerQuery.viewer
     const { mode, type } = this.props
-    const { submitting, curMember, imagePreviewUrl, cropping, crop, avatarUpdated, croppedAvatar, showError, errorMessage, userNameError, fullNameError, emailError, passwordError, profileCreated, profileUpdated } = this.state
+    const { submitting, curMember, imagePreviewUrl, cropping, crop, avatarUpdated, croppedAvatar, showError, errorMessage, userNameError, fullNameError, emailError, passwordError, profileCreated, profileUpdated, profileDisabled } = this.state
 
     let title
     let submitText
@@ -371,7 +413,7 @@ class EditMember extends React.Component {
 
     let disabled = false
 
-    if (edit) {
+    if ((edit) || (type === 'new')) {
       if (curMember.password !== curMember.repeatPassword) disabled = true
     }
 
@@ -386,6 +428,14 @@ class EditMember extends React.Component {
       return (
         <Message positive>
           <span>Profile successfully updated</span>
+        </Message>
+      )
+    }
+
+    if (profileDisabled) {
+      return (
+        <Message positive>
+          <span>Profile successfully disabled</span>
         </Message>
       )
     }
@@ -454,11 +504,19 @@ class EditMember extends React.Component {
             { viewer.member.isAdmin &&
             <Form.Field control={Checkbox} label='Admin' checked={curMember.isAdmin} onChange={this.handleEditIsAdmin} />
             }
-            <Button floated='right' color='green' disabled={disabled || submitting} onClick={this.handleSubmit}>{submitText}</Button>
-            { !mode === 'self' &&
-            <Button floated='right' disabled={submitting} onClick={this.handleCancel}>Cancel</Button>
+            <div>
+              <Button floated='right' color='green' disabled={disabled || submitting} onClick={this.handleSubmit}>{submitText}</Button>
+              { viewer.member.isAdmin && type === 'edit' && mode === 'member' && 
+                <Button type="button" floated='right' color='red' onClick={this.openDisableMember}>Disable Member</Button>
+              }
+              { !mode === 'self' &&
+                <Button floated='right' disabled={submitting} onClick={this.handleCancel}>Cancel</Button>
+              }
+            </div>
+            { viewer.member.isAdmin && type === 'edit' && mode === 'member' && 
+              <Confirm content='Are you sure you want to disable this member?' open={this.state.isOpenDisableMember} onCancel={this.closeDisableMember} onConfirm={this.handleSubmitDisable} />
             }
-            <span style={{clear: 'both'}} />
+            <div style={{clear: 'both'}} />
           </Form>
           <Message negative hidden={!showError} onDismiss={this.handleErrorMessageDismiss}>
             <p>{errorMessage}</p>
@@ -516,6 +574,19 @@ const updateMember = gql`
   }
 `
 
+const updateMemberDisable = gql`
+  mutation updateMemberDisable($updateMemberChangeDisable: UpdateMemberChangeDisable!) {
+    updateMemberDisable(updateMemberChangeDisable: $updateMemberChangeDisable) {
+      hasErrors
+      genericError
+      member {
+        uid
+      }
+    }
+  }
+`
+
+
 const setMemberPassword = gql`
   mutation setMemberPassword($memberUID: ID!, $curPassword: String!, $newPassword: String!) {
     setMemberPassword(memberUID: $memberUID, curPassword: $curPassword, newPassword: $newPassword) {
@@ -562,6 +633,12 @@ graphql(updateMember, {
   name: 'updateMember',
   props: ({ updateMember }) => ({
     updateMember: (updateMemberChange) => updateMember({ variables: { updateMemberChange }, refetchQueries: ['memberQuery'] })
+  })
+}),
+graphql(updateMemberDisable, {
+  name: 'updateMemberDisable',
+  props: ({ updateMemberDisable }) => ({
+    updateMemberDisable: (updateMemberChangeDisable) => updateMemberDisable({ variables: { updateMemberChangeDisable }, refetchQueries: ['memberQuery'] })
   })
 }),
 graphql(setMemberPassword, {

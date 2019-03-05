@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/sorintlab/sircles/change"
 	"github.com/sorintlab/sircles/dataloader"
@@ -124,6 +125,15 @@ func (r *memberResolver) Email() string {
 	return r.m.Email
 }
 
+func (r *memberResolver) IsDisable() bool {
+	//var end_tl sql.NullInt64
+	if r.m.Vertex.EndTl == nil {
+		return false
+	} else {
+		return true
+	}
+}
+
 func (r *memberResolver) Circles() (*[]*memberCircleEdgeResolver, error) {
 	data, err := r.dataLoaders.Get(r.timeLineID).MemberCircleEdges.Load(r.m.ID.String())()
 	if err != nil {
@@ -193,7 +203,7 @@ type memberEdgeResolver struct {
 }
 
 func (r *memberEdgeResolver) Cursor() (string, error) {
-	return marshalMemberConnectionCursor(&MemberConnectionCursor{TimeLineID: r.timeLineID, FullName: r.member.FullName})
+	return marshalMemberConnectionCursor(&MemberConnectionCursor{TimeLineID: strconv.FormatInt(int64(r.timeLineID), 10), FullName: r.member.FullName})
 }
 
 func (r *memberEdgeResolver) Member() *memberResolver {
@@ -290,4 +300,69 @@ func (r *updateMemberChangeErrorsResolver) FullName() *string {
 
 func (r *updateMemberChangeErrorsResolver) Email() *string {
 	return errorToStringP(r.r.Email)
+}
+
+type updateMemberResultResolverDisable struct {
+	s          readdb.ReadDBService
+	member     *models.Member
+	res        *change.UpdateMemberResultDisable
+	timeLineID util.TimeLineNumber
+
+	dataLoaders *dataloader.DataLoaders
+}
+
+func (r *updateMemberResultResolverDisable) Member() *memberResolver {
+	if r.member == nil {
+		return nil
+	}
+	return &memberResolver{r.s, r.member, r.timeLineID, r.dataLoaders}
+}
+
+func (r *updateMemberResultResolverDisable) HasErrors() bool {
+	return r.res.HasErrors
+}
+
+func (r *updateMemberResultResolverDisable) GenericError() *string {
+	return errorToStringP(r.res.GenericError)
+}
+
+func (r *updateMemberResultResolverDisable) UpdateMemberChangeErrorsDisable() *updateMemberChangeErrorsResolverDisable {
+	return &updateMemberChangeErrorsResolverDisable{r: r.res.UpdateMemberChangeErrorsDisable}
+}
+
+type updateMemberChangeErrorsResolverDisable struct {
+	r change.UpdateMemberChangeErrorsDisable
+}
+
+
+type updateActivateMemberResultResolver struct {
+	s          readdb.ReadDBService
+	member     *models.Member
+	res        *change.UpdateActivateMemberResult
+	timeLineID util.TimeLineNumber
+
+	dataLoaders *dataloader.DataLoaders
+}
+
+func (r *updateActivateMemberResultResolver) Member() *memberResolver {
+	if r.member == nil {
+		return nil
+	}
+	return &memberResolver{r.s, r.member, r.timeLineID, r.dataLoaders}
+}
+
+func (r *updateActivateMemberResultResolver) HasErrors() bool {
+	return r.res.HasErrors
+}
+
+func (r *updateActivateMemberResultResolver) GenericError() *string {
+	return errorToStringP(r.res.GenericError)
+}
+
+func (r *updateActivateMemberResultResolver) UpdateActivateMemberChangeErrors() *updateActivateMemberChangeErrorsResolver {
+	return &updateActivateMemberChangeErrorsResolver{r: r.res.UpdateActivateMemberChangeErrors}
+}
+
+type updateActivateMemberChangeErrorsResolver struct {
+	r change.UpdateActivateMemberChangeErrors
 }

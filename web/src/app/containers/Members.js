@@ -1,13 +1,14 @@
 import React from 'react'
 import { graphql, compose } from 'react-apollo'
 import gql from 'graphql-tag'
-import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon } from 'semantic-ui-react'
+import { Container, Dimmer, Loader, Segment, Input, Button, Table, Icon, Confirm, Popup } from 'semantic-ui-react'
 
 import { withError } from '../modules/Error'
 import Util from '../modules/Util'
 import Avatar from '../components/Avatar'
 
 const defaultFetchSize = 25
+let uuuid
 
 class Members extends React.Component {
   componentWillMount () {
@@ -15,7 +16,8 @@ class Members extends React.Component {
   }
 
   resetComponent = () => this.setState({
-    searchString: ''
+    searchString: '',
+    isOpenActivateMember: false
   })
 
   componentWillReceiveProps (nextProps) {
@@ -38,6 +40,32 @@ class Members extends React.Component {
 
   handleNewMember = () => {
     this.props.history.push('/settings/admin/member/new')
+  }
+
+  handleActivateMember = () => {
+      let updateActivateMemberChange =
+        {
+          uid: uuuid
+        }
+
+        console.log('updateActivateMemberChange', updateActivateMemberChange)
+      this.props.updateActivateMember(updateActivateMemberChange)
+    .then(({ data }) => {
+      console.log("sending query ActivateMember")
+    }).catch((error) => {
+      console.log('there was an error sending the query', error)
+    })
+    location.reload()
+    this.closeActivateMember()
+  }
+
+  openActivateMember = (uid) => {
+    uuuid = uid
+    this.setState({ 'isOpenActivateMember': true })
+  }
+
+  closeActivateMember = () => {
+    this.setState({ 'isOpenActivateMember': false })
   }
 
   render () {
@@ -67,7 +95,7 @@ class Members extends React.Component {
     const { searchString } = this.state
 
     const viewer = viewerQuery.viewer
-    const members = membersQuery.members
+    const members = membersQuery.membersList
 
     return (
       <Container>
@@ -95,6 +123,7 @@ class Members extends React.Component {
                   <Table.HeaderCell>UserName</Table.HeaderCell>
                   <Table.HeaderCell>Full Name</Table.HeaderCell>
                   <Table.HeaderCell>Admin</Table.HeaderCell>
+                  <Table.HeaderCell>Disabled</Table.HeaderCell>
                   <Table.HeaderCell />
                 </Table.Row>
               </Table.Header>
@@ -109,11 +138,24 @@ class Members extends React.Component {
                     <Table.Cell>
                       {m.fullName}
                     </Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell style={{paddingLeft: '20' + 'px'}}>
                       {m.isAdmin && <Icon color='green' name='checkmark' />}
                     </Table.Cell>
+                    <Table.Cell style={{paddingLeft: '30' + 'px'}}>
+                      {m.isDisable && <Icon color='red' name='x icon' />}
+                    </Table.Cell>
                     <Table.Cell collapsing >
-                      <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />
+                    <Popup content='Edit member' trigger={
+                      <span>
+                        {!m.isDisable && <Icon name='edit' link onClick={() => { this.props.history.push(`/settings/admin/member/${m.uid}/edit`) }} />}
+                      </span>
+                    }/>
+                    <Popup content='Activate member' trigger={
+                      <span>
+                        {m.isDisable && <Icon name='unlock alternate' link onClick={() => {this.openActivateMember(m.uid)}} />}
+                      </span>
+                    }/>
+                    <Confirm content='Are you sure you want to activate this member?' open={this.state.isOpenActivateMember} onCancel={this.closeActivateMember} onConfirm={this.handleActivateMember} />
                     </Table.Cell>
                   </Table.Row>
           ))}
@@ -134,12 +176,13 @@ Members.propTypes = {
 
 const MembersQuery = gql`
       query MembersQuery($first: Int, $search: String){
-        members(first: $first, search: $search) {
+        membersList(first: $first, search: $search) {
           edges {
             cursor
             member {
               uid
               isAdmin
+              isDisable
               userName
               fullName
             }
@@ -151,7 +194,7 @@ const MembersQuery = gql`
 
 const MoreMembersQuery = gql`
       query MoreMembersQuery($after: Int){
-        members(first: $first, after: $after) {
+        membersList(first: $first, after: $after) {
           edges {
             cursor
             member {
@@ -159,11 +202,24 @@ const MoreMembersQuery = gql`
               isAdmin
               userName
               fullName
+              isDisable
             }
           }
           hasMoreData
         }
       }
+`
+
+const updateActivateMember = gql`
+  mutation updateActivateMember($updateActivateMemberChange: UpdateActivateMemberChange!) {
+    updateActivateMember(updateActivateMemberChange: $updateActivateMemberChange) {
+      hasErrors
+      genericError
+      member {
+        uid
+      }
+    }
+  }
 `
 
 const ViewerQuery = gql`
@@ -177,6 +233,12 @@ const ViewerQuery = gql`
   }
 `
 export default compose(
+  graphql(updateActivateMember, {
+    name: 'updateActivateMember',
+    props: ({ updateActivateMember }) => ({
+      updateActivateMember: (updateActivateMemberChange) => updateActivateMember({ variables: { updateActivateMemberChange }, refetchQueries: ['memberQuery'] })
+    })
+  }),
 graphql(ViewerQuery, {
   name: 'viewerQuery',
   options: () => ({
@@ -190,19 +252,19 @@ graphql(MembersQuery, {
     },
     fetchPolicy: 'network-only'
   }),
-  props ({ data: { loading, error, refetch, members, fetchMore } }) {
+  props ({ data: { loading, error, refetch, membersList, fetchMore } }) {
     console.log('loading', loading)
     console.log('error', error)
-
+    let members = membersList
     let cursor
     const cursors = members && members.edges.map((e) => (e.cursor))
     if (cursors && cursors.length > 0) cursor = cursors[cursors.length - 1]
-    const membersList = members && members.edges.map((e) => (e.member))
+    membersList = members && members.edges.map((e) => (e.member))
     return {
       membersQuery: {
         loading,
         error,
-        members: membersList,
+        membersList: membersList,
         hasMoreData: members && members.hasMoreData,
         loadMoreEntries: () => {
           return fetchMore({
@@ -215,7 +277,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...previousResult.members.edges, ...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })
@@ -235,7 +297,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })
@@ -254,7 +316,7 @@ graphql(MembersQuery, {
               const newEdges = fetchMoreResult.members.edges
 
               return {
-                members: Object.assign({}, fetchMoreResult.members, {
+                membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
                   hasMoreData: fetchMoreResult.members.hasMoreData
                 })

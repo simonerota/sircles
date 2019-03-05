@@ -159,6 +159,13 @@ class OrgChart extends React.Component {
     return nodes.map(node => {
       if (node.data.type !== 'circle' && node.data.type !== 'role') return
 
+      // We hide custom core members role named 'Core Members'
+      if (node.data.name === 'Core Members') return
+
+      // We hide these standard core roles: replink, facilitator, secretary
+      if (node.data.roleType === 'replink' || node.data.roleType === 'facilitator' || node.data.roleType === 'secretary') return
+
+
       const x = (node.x - ix) * k
       const y = (node.y - iy) * k
       const r = node.r * k
@@ -171,7 +178,14 @@ class OrgChart extends React.Component {
       if (node.data.roleType === 'leadlink' ||
       node.data.roleType === 'replink' ||
       node.data.roleType === 'facilitator' ||
-      node.data.roleType === 'secretary') {
+      node.data.roleType === 'engager' ||
+      node.data.roleType === 'champion' ||
+      node.data.roleType === 'scout' ||
+      node.data.roleType === 'magister' ||
+      node.data.roleType === 'mangler' ||
+      node.data.roleType === 'secretary' ||
+      node.data.roleType === 'securityenabler' ||
+      node.data.roleType === 'reporter') {
         fill = d3.color('#9cd8ff')
       } else if (node.data.roleType === 'circle') {
         fill = d3.color('hsl(0, 0%, 97%)')
@@ -208,6 +222,13 @@ class OrgChart extends React.Component {
 
     return nodes.map(node => {
       if (node.data.type !== 'title' && node.data.type !== 'role') return
+
+
+      // We hide custom core members role named 'Core Members'
+      if (node.data.name === 'Core Members') return
+
+      if (node.data.roleType === 'replink' || node.data.roleType === 'facilitator' || node.data.roleType === 'secretary') return
+
 
       if (node.data.depth - zoomnode.data.depth > 2) return
 
@@ -263,16 +284,18 @@ class OrgChart extends React.Component {
 
       // We are using an html foreignObject because it's definetly faster than a svg text object
       return (
-        <foreignObject key={node.data.uid} width={width} height={height} style={foStyle} transform={transform}>
-          { !transitioning && node === zoomnode && zoomnode.data.roleType !== 'circle' &&
-            <OrgChartDetail timeLine={timeLine} roleUID={zoomnode.data.uid} /> ||
-            <div style={divStyle}>
-              <Link key={node.data.uid} style={linkStyle} to={Util.roleUrl(node.data.uid, timeLine)}>
-                {node.data.name}
-              </Link>
-            </div>
-          }
-        </foreignObject>
+        <g transform={transform}>
+          <foreignObject key={node.data.uid} width={width} height={height} style={foStyle}>
+            { !transitioning && node === zoomnode && zoomnode.data.roleType !== 'circle' &&
+              <OrgChartDetail timeLine={timeLine} roleUID={zoomnode.data.uid} /> ||
+              <div style={divStyle}>
+                <Link key={node.data.uid} style={linkStyle} to={Util.roleUrl(node.data.uid, timeLine)}>
+                  {node.data.name}
+                </Link>
+              </div>
+            }
+          </foreignObject>
+        </g>
       )
     })
   }

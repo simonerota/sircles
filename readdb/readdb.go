@@ -19,7 +19,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 var log = slog.S()
@@ -36,7 +36,7 @@ type ReadDBService interface {
 	// Queries
 	CurTimeLine(ctx context.Context) *util.TimeLine
 	TimeLine(ctx context.Context, tl util.TimeLineNumber) (*util.TimeLine, error)
-	TimeLines(ctx context.Context, ts *time.Time, tl util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateID *util.ID) ([]*util.TimeLine, bool, error)
+	TimeLines(ctx context.Context, ts *time.Time, tl util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateType1 string, aggregateID *util.ID) ([]*util.TimeLine, bool, error)
 	TimeLineAtTimeStamp(ctx context.Context, t time.Time) (*util.TimeLine, error)
 	TimeLineForGroupID(ctx context.Context, groupID util.ID) (*util.TimeLine, error)
 
@@ -52,6 +52,7 @@ type ReadDBService interface {
 	Tension(ctx context.Context, tl util.TimeLineNumber, id util.ID) (*models.Tension, error)
 	MembersByIDs(ctx context.Context, tl util.TimeLineNumber, membersIDs []util.ID) ([]*models.Member, error)
 	Members(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error)
+	MembersList(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error)
 	Roles(ctx context.Context, tl util.TimeLineNumber, rolesIDs []util.ID) ([]*models.Role, error)
 	RolesAdditionalContent(ctx context.Context, tl util.TimeLineNumber, rolesIDs []util.ID) (map[util.ID]*models.RoleAdditionalContent, error)
 
@@ -227,6 +228,8 @@ const (
 	vertexClassRoleMemberEdge        vertexClass = "rolememberedge"
 	vertexClassMemberRoleEdge        vertexClass = "memberroleedge"
 	vertexClassTension               vertexClass = "tension"
+	vertexClassMembersList           vertexClass = "memberslist"
+	vertexClassActivate          	 vertexClass = "activate"
 )
 
 func (vc vertexClass) String() string {
@@ -278,6 +281,10 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		sb = accountabilitySelect
 	case vertexClassMember:
 		sb = memberSelect
+	case vertexClassMembersList:
+		// sb = ""
+	case vertexClassActivate:
+		sb = memberSelect
 	case vertexClassMemberAvatar:
 		sb = memberAvatarSelect
 	case vertexClassTension:
@@ -286,52 +293,82 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 		return nil, errors.Errorf("unknown vertex class: %q", vertexClass)
 	}
 
-	sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
-
-	if condition != nil {
-		sb = sb.Where(condition)
-	}
-
-	if limit != 0 {
-		sb = sb.Limit(limit)
-	}
-
-	sb = sb.OrderBy(orderBys...)
-
-	q, args, err := sb.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build query")
-	}
-
 	var res interface{}
-	err = s.tx.Do(func(tx *db.WrappedTx) error {
-		rows, err := tx.Query(q, args...)
-		if err != nil {
-			return errors.WithMessage(err, "failed to execute query")
-		}
 
-		switch vertexClass {
-		case vertexClassRole:
-			res, err = scanRoles(rows)
-		case vertexClassRoleAdditionalContent:
-			res, err = scanRolesAdditionalContent(rows)
-		case vertexClassDomain:
-			res, err = scanDomains(rows)
-		case vertexClassAccountability:
-			res, err = scanAccountabilities(rows)
-		case vertexClassMember:
+	if vertexClass == vertexClassMembersList {
+
+		q := "select id, start_tl, end_tl, isadmin, username, fullname, email FROM member WHERE start_tl in(SELECT max(start_tl) FROM member GROUP BY id)"
+
+
+		err := s.tx.Do(func(tx *db.WrappedTx) error {
+			rows, err := tx.Query(q)
+			if err != nil {
+				return errors.WithMessage(err, "failed to execute query")
+			}
+
 			res, err = scanMembers(rows)
-		case vertexClassMemberAvatar:
-			res, err = scanAvatars(rows)
-		case vertexClassTension:
-			res, err = scanTensions(rows)
-		default:
-			return errors.Errorf("unknown vertex class: %q", vertexClass)
-		}
-		return err
-	})
+			return err
+		})
+		return res, err
 
-	return res, err
+	} else {
+		
+		if vertexClass != vertexClassActivate{
+			sb = sb.Where(s.timeLineCond(vertexClass.String(), tl))
+		}
+		
+
+		if condition != nil {
+			sb = sb.Where(condition)
+		}
+	
+		if limit != 0 {
+			sb = sb.Limit(limit)
+		}
+	
+		sb = sb.OrderBy(orderBys...)
+	
+		q, args, err := sb.ToSql()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to build query")
+		}
+	
+		
+		err = s.tx.Do(func(tx *db.WrappedTx) error {
+			rows, err := tx.Query(q, args...)
+			if err != nil {
+				return errors.WithMessage(err, "failed to execute query")
+			}
+	
+			switch vertexClass {
+			case vertexClassRole:
+				res, err = scanRoles(rows)
+			case vertexClassRoleAdditionalContent:
+				res, err = scanRolesAdditionalContent(rows)
+			case vertexClassDomain:
+				res, err = scanDomains(rows)
+			case vertexClassAccountability:
+				res, err = scanAccountabilities(rows)
+			case vertexClassMember:
+				res, err = scanMembers(rows)
+			case vertexClassMembersList:
+				// res, err = scanMembers(rows)
+			case vertexClassActivate:
+				res, err = scanMembers(rows)
+			case vertexClassMemberAvatar:
+				res, err = scanAvatars(rows)
+			case vertexClassTension:
+				res, err = scanTensions(rows)
+			default:
+				return errors.Errorf("unknown vertex class: %q", vertexClass)
+			}
+			return err
+		})
+
+		return res, err
+
+	}
+
 }
 
 func (s *readDBService) connectedVertices(tl util.TimeLineNumber, vertexID []util.ID, ec edgeClass, direction edgeDirection, outputVertexClass vertexClass, condition interface{}, orderBys []string) (interface{}, error) {
@@ -621,6 +658,11 @@ func (s *readDBService) insertVertex(tl util.TimeLineNumber, vc vertexClass, id 
 	default:
 		return errors.Errorf("unknown vertex class: %q", vc)
 	}
+}
+
+//to activate a disabled user
+func (s *readDBService) activateVertex(tl util.TimeLineNumber, vc vertexClass, id util.ID) error {
+	return s.insertMemberActivate(tl, id)
 }
 
 // closeVertex closes a vertex setting its end timeline to endtl (should always
@@ -1246,6 +1288,41 @@ func (s *readDBService) insertMember(tl util.TimeLineNumber, id util.ID, member 
 	return nil
 }
 
+type active struct{
+	isAdmin, userName, fullName, email string
+}
+
+func (s *readDBService) insertMemberActivate(tl util.TimeLineNumber, id util.ID) error {
+	var member active
+
+	query := fmt.Sprintf("SELECT member.isadmin, member.username, member.fullname, member.email FROM member WHERE member.id = '%s'", id)
+
+	err := s.tx.Do(func(tx *db.WrappedTx) error {
+		rows, err := tx.Query(query)
+		if err != nil {
+			return errors.WithMessage(err, "failed to execute query")
+		}
+
+		for rows.Next(){
+			err = rows.Scan(&member.isAdmin, &member.userName, &member.fullName, &member.email)
+		}
+		return err
+	})
+
+	q, args, err := memberInsert.Values(id, tl, nil, member.isAdmin, member.userName, member.fullName, member.email).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build query")
+	}
+	err = s.tx.Do(func(tx *db.WrappedTx) error {
+		_, err = tx.Exec(q, args...)
+		return err
+	})
+	if err != nil {
+		return errors.WithMessage(err, "failed to execute query")
+	}
+	return nil
+}
+
 func (s *readDBService) insertMemberAvatar(tl util.TimeLineNumber, id util.ID, avatar *models.Avatar) error {
 	q, args, err := memberAvatarInsert.Values(id, tl, nil, avatar.Image).ToSql()
 	if err != nil {
@@ -1389,7 +1466,7 @@ func (s *readDBService) TimeLineForGroupID(ctx context.Context, groupID util.ID)
 	return &tl, err
 }
 
-func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateID *util.ID) ([]*util.TimeLine, bool, error) {
+func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.TimeLineNumber, limit int, after bool, aggregateType string, aggregateType1 string, aggregateID *util.ID) ([]*util.TimeLine, bool, error) {
 	var tls []*util.TimeLine
 	if limit <= 0 {
 		limit = MaxFetchSize
@@ -1408,7 +1485,7 @@ func (s *readDBService) TimeLines(ctx context.Context, ts *time.Time, sn util.Ti
 	sb = sb.Limit(uint64(limit + 1))
 
 	if aggregateType != "" {
-		sb = sb.Where(sq.Eq{"aggregatetype": aggregateType})
+		sb = sb.Where(sq.Or{sq.Eq{"aggregatetype": aggregateType}, sq.Eq{"aggregatetype": aggregateType1}})
 	}
 	if aggregateID != nil {
 		sb = sb.Where(sq.Eq{"aggregateid": aggregateID})
@@ -1590,6 +1667,18 @@ func (s *readDBService) Member(ctx context.Context, tl util.TimeLineNumber, memb
 	return members[0], nil
 }
 
+func (s *readDBService) MemberActivate(ctx context.Context, tl util.TimeLineNumber, memberID util.ID) (*models.Member, error) {
+	vs, err := s.vertices(tl, vertexClassActivate, 0, sq.Eq{"member.id": memberID}, nil)
+	if err != nil {
+		return nil, err
+	}
+	members := vs.([]*models.Member)
+	if len(members) == 0 {
+		return nil, nil
+	}
+	return members[0], nil
+}
+
 func (s *readDBService) MemberAvatar(ctx context.Context, tl util.TimeLineNumber, id util.ID) (*models.Avatar, error) {
 	vs, err := s.vertices(tl, vertexClassMemberAvatar, 0, sq.Eq{"memberavatar.id": id}, nil)
 	if err != nil {
@@ -1705,6 +1794,47 @@ func (s *readDBService) Members(ctx context.Context, tl util.TimeLineNumber, sea
 
 	// ask for first + 1 members to know if there're more members
 	members, err := s.members(tl, searchString, first+1, after)
+	if err != nil {
+		return nil, false, err
+	}
+
+	size := len(members)
+	if len(members) > first {
+		size = first
+	}
+	return members[:size], len(members) > first, nil
+}
+
+func (s *readDBService) membersList(tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, error) {
+	var condition sq.Sqlizer
+	if after != nil {
+		condition = sq.Gt{"member.fullname": after}
+	}
+	if searchString != "" {
+		likeCondition := sq.Or{GenericSqlizer(fmt.Sprintf(`lower(member.fullname) LIKE lower('%%%s%%')`, searchString)), GenericSqlizer(fmt.Sprintf(`lower(member.UserName) LIKE lower('%%%s%%')`, searchString))}
+		if condition == nil {
+			condition = likeCondition
+		} else {
+			condition = sq.And{condition, likeCondition}
+		}
+	}
+
+	vs, err := s.vertices(tl, vertexClassMembersList, uint64(first), condition, []string{"member.fullname"})
+	if err != nil {
+		return nil, err
+	}
+	members := vs.([]*models.Member)
+
+	return members, nil
+}
+
+func (s *readDBService) MembersList(ctx context.Context, tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, bool, error) {
+	if first == 0 {
+		first = MaxFetchSize
+	}
+
+	// ask for first + 1 members to know if there're more members
+	members, err := s.membersList(tl, searchString, first+1, after)
 	if err != nil {
 		return nil, false, err
 	}
@@ -2872,6 +3002,31 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 			return err
 		}
 
+	case ep.EventTypeMemberUpdatedDisable:
+		// data := data.(*ep.EventMemberUpdatedDisable)
+		memberID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return err
+		}
+
+		// disable a member by adding end_tl to his last record
+		if err := s.deleteVertex(tl.Number()-1, vertexClassMember, memberID); err != nil {
+			return err
+		}
+
+	case ep.EventTypeMemberUpdatedActivate:
+		// data := data.(*ep.EventMemberUpdatedDisable)
+		memberID, err := util.IDFromString(event.StreamID)
+		if err != nil {
+			return err
+		}
+
+		// activate member by adding new record with the same id, name, email... but with current timeline.
+		if err := s.activateVertex(tl.Number(), vertexClassMember, memberID); err != nil {
+			return err
+		}
+
+
 	case ep.EventTypeMemberPasswordSet:
 		data := data.(*ep.EventMemberPasswordSet)
 		memberID, err := util.IDFromString(event.StreamID)
@@ -2907,6 +3062,8 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 
 	case ep.EventTypeMemberChangeCreateRequested:
 	case ep.EventTypeMemberChangeUpdateRequested:
+	case ep.EventTypeMemberChangeUpdateRequestedDisable:
+	case ep.EventTypeMemberChangeUpdateActivateRequested:
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 	case ep.EventTypeMemberChangeCompleted:
 
@@ -3222,6 +3379,12 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 	case ep.EventTypeMemberUpdated:
 		//data := data.(*ep.EventMemberUpdated)
 
+	case ep.EventTypeMemberUpdatedDisable:
+		//data := data.(*ep.EventMemberUpdatedDisable)
+
+	case ep.EventTypeMemberUpdatedActivate:
+		//data := data.(*ep.EventMemberUpdatedActivate)
+
 	case ep.EventTypeMemberPasswordSet:
 		//data := data.(*ep.EventMemberPasswordSet)
 
@@ -3230,6 +3393,8 @@ func (h *DBEventHandler) handleEvent(event *eventstore.StoredEvent, tx *db.Tx, s
 
 	case ep.EventTypeMemberChangeCreateRequested:
 	case ep.EventTypeMemberChangeUpdateRequested:
+	case ep.EventTypeMemberChangeUpdateRequestedDisable:
+	case ep.EventTypeMemberChangeUpdateActivateRequested:
 	case ep.EventTypeMemberChangeSetMatchUIDRequested:
 	case ep.EventTypeMemberChangeCompleted:
 

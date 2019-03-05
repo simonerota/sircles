@@ -31,10 +31,14 @@ const (
 
 	CommandTypeRequestCreateMember      CommandType = "RequestCreateMember"
 	CommandTypeRequestUpdateMember      CommandType = "RequestUpdateMember"
+	CommandTypeRequestUpdateMemberDisable      CommandType = "RequestUpdateMemberDisable"
+	CommandTypeRequestUpdateActivateMember      CommandType = "RequestUpdateActivateMember"
 	CommandTypeRequestSetMemberMatchUID CommandType = "RequestSetMemberMatchUID"
 
 	CommandTypeCreateMember      CommandType = "CreateMember"
 	CommandTypeUpdateMember      CommandType = "UpdateMember"
+	CommandTypeUpdateMemberDisable      CommandType = "UpdateMemberDisable"
+	CommandTypeUpdateActivateMember      CommandType = "UpdateActivateMember"
 	CommandTypeDeleteMember      CommandType = "DeleteMember"
 	CommandTypeSetMemberPassword CommandType = "SetMemberPassword"
 	CommandTypeSetMemberMatchUID CommandType = "SetMemberMatchUID"
@@ -210,6 +214,46 @@ func NewCommandUpdateMember(c *change.UpdateMemberChange, memberChangeID util.ID
 		MemberChangeID: memberChangeID,
 		PrevUserName:   prevUserName,
 		PrevEmail:      prevEmail,
+	}
+}
+
+type RequestUpdateMemberDisable struct {
+	MemberID     util.ID
+}
+
+func NewCommandRequestUpdateMemberDisable(c *change.UpdateMemberChangeDisable, memberID util.ID) *RequestUpdateMemberDisable {
+	return &RequestUpdateMemberDisable{
+		MemberID:     memberID,
+	}
+}
+
+type UpdateMemberDisable struct {
+	MemberChangeID util.ID
+}
+
+func NewCommandUpdateMemberDisable(c *change.UpdateMemberChangeDisable, memberChangeID util.ID) *UpdateMemberDisable {
+	return &UpdateMemberDisable{
+		MemberChangeID: memberChangeID,
+	}
+}
+
+type RequestUpdateActivateMember struct {
+	MemberID     util.ID
+}
+
+func NewCommandRequestUpdateActivateMember(c *change.UpdateActivateMemberChange, memberID util.ID) *RequestUpdateActivateMember {
+	return &RequestUpdateActivateMember{
+		MemberID:     memberID,
+	}
+}
+
+type UpdateActivateMember struct {
+	MemberChangeID util.ID
+}
+
+func NewCommandUpdateActivateMember(c *change.UpdateActivateMemberChange, memberChangeID util.ID) *UpdateActivateMember {
+	return &UpdateActivateMember{
+		MemberChangeID: memberChangeID,
 	}
 }
 
