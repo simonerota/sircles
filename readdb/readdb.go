@@ -282,7 +282,7 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 	case vertexClassMember:
 		sb = memberSelect
 	case vertexClassMembersList:
-		// sb = ""
+		//sb = ""
 	case vertexClassActivate:
 		sb = memberSelect
 	case vertexClassMemberAvatar:
@@ -297,8 +297,23 @@ func (s *readDBService) vertices(tl util.TimeLineNumber, vertexClass vertexClass
 
 	if vertexClass == vertexClassMembersList {
 
-		q := "select id, start_tl, end_tl, isadmin, username, fullname, email FROM member WHERE start_tl in(SELECT max(start_tl) FROM member GROUP BY id)"
+		q := "SELECT member.id, member.start_tl, member.end_tl, member.isadmin, member.username, member.fullname, member.email FROM member WHERE member.start_tl in(SELECT max(start_tl) FROM member GROUP BY id)"
 
+		if condizioneFullName != "" && condizioneSearchString != ""{
+			q = q + "AND " + condizioneFullName + "AND " + condizioneSearchString
+		}else{
+			if condizioneFullName != ""{
+				q = q + "AND " + condizioneFullName
+			}
+	
+			if condizioneSearchString != ""{
+				q = q + "AND " + condizioneSearchString
+			}
+		}
+		
+
+		q = q + " ORDER BY member.fullname"
+		
 
 		err := s.tx.Do(func(tx *db.WrappedTx) error {
 			rows, err := tx.Query(q)
@@ -1805,21 +1820,28 @@ func (s *readDBService) Members(ctx context.Context, tl util.TimeLineNumber, sea
 	return members[:size], len(members) > first, nil
 }
 
+var condizioneFullName string
+var condizioneSearchString string 
+
 func (s *readDBService) membersList(tl util.TimeLineNumber, searchString string, first int, after *string) ([]*models.Member, error) {
-	var condition sq.Sqlizer
+	var condition string
+	var err error
+	var vs interface{}
+	condizioneFullName = ""
+	condizioneSearchString = ""
+
 	if after != nil {
-		condition = sq.Gt{"member.fullname": after}
+		condizioneFullName = "member.fullname > '" + *after + "'"
 	}
 	if searchString != "" {
-		likeCondition := sq.Or{GenericSqlizer(fmt.Sprintf(`lower(member.fullname) LIKE lower('%%%s%%')`, searchString)), GenericSqlizer(fmt.Sprintf(`lower(member.UserName) LIKE lower('%%%s%%')`, searchString))}
-		if condition == nil {
-			condition = likeCondition
+		condizioneSearchString =fmt.Sprintf(`lower(member.fullname) LIKE lower('%%%s%%')`, searchString) + " OR " + fmt.Sprintf(`lower(member.UserName) LIKE lower('%%%s%%')`, searchString)
+		if condizioneFullName == "" {
+			condition = condizioneSearchString
 		} else {
-			condition = sq.And{condition, likeCondition}
+			condition = condizioneFullName + "AND " + condizioneSearchString
 		}
 	}
-
-	vs, err := s.vertices(tl, vertexClassMembersList, uint64(first), condition, []string{"member.fullname"})
+	vs, err = s.vertices(tl, vertexClassMembersList, uint64(first), condition, []string{"member.fullname"})
 	if err != nil {
 		return nil, err
 	}
