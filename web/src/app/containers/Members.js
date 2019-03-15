@@ -257,7 +257,7 @@ graphql(MembersQuery, {
     console.log('error', error)
     let members = membersList
     let cursor
-    const cursors = members && members.edges.map((e) => (e.cursor))
+    const cursors = membersList && members.edges.map((e) => (e.cursor))
     if (cursors && cursors.length > 0) cursor = cursors[cursors.length - 1]
     membersList = members && members.edges.map((e) => (e.member))
     return {
@@ -266,25 +266,27 @@ graphql(MembersQuery, {
         error,
         membersList: membersList,
         hasMoreData: members && members.hasMoreData,
+        //when you click to the button load more users
         loadMoreEntries: () => {
           return fetchMore({
             query: MoreMembersQuery,
             variables: {
-              first: defaultFetchSize,
+              first: defaultFetchSize, 
               after: cursor
             },
             updateQuery: (previousResult, { fetchMoreResult }) => {
-              const newEdges = fetchMoreResult.members.edges
+              const newEdges = fetchMoreResult.membersList.edges
 
               return {
                 membersList: Object.assign({}, fetchMoreResult.members, {
-                  edges: [...previousResult.members.edges, ...newEdges],
-                  hasMoreData: fetchMoreResult.members.hasMoreData
+                  edges: [...previousResult.membersList.edges, ...newEdges],
+                  hasMoreData: fetchMoreResult.membersList.hasMoreData
                 })
               }
             }
           })
         },
+        //when you search a member
         update: (searchString) => {
           return fetchMore({
             query: MembersQuery,
@@ -294,12 +296,12 @@ graphql(MembersQuery, {
             },
             updateQuery: (previousResult, { fetchMoreResult }) => {
               console.log('fetchMoreResult', fetchMoreResult)
-              const newEdges = fetchMoreResult.members.edges
+              const newEdges = fetchMoreResult.membersList.edges
 
               return {
                 membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
-                  hasMoreData: fetchMoreResult.members.hasMoreData
+                  hasMoreData: fetchMoreResult.membersList.hasMoreData
                 })
               }
             }
@@ -318,7 +320,7 @@ graphql(MembersQuery, {
               return {
                 membersList: Object.assign({}, fetchMoreResult.members, {
                   edges: [...newEdges],
-                  hasMoreData: fetchMoreResult.members.hasMoreData
+                  hasMoreData: fetchMoreResult.membersList.hasMoreData
                 })
               }
             }
